@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego de X0 con amor 💖</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="main-container">
+    <h1>❤️ Te amo mucho mi amor ❤️</h1>
+    <h2 id="titulo2">Juntos por siempre</h2>
+    <h3 id="titulo3">Juguemos y chatiemos al mismo tiempo mi niña💌</h3>
+
+    <section id="controls" aria-label="Crear o unirse al juego">
+      <div class="control-grid">
+        <input type="text" id="nombreInput" placeholder="Escribe tu nombre" />
+        <button id="crearJuegoBtn" type="button">Crear juego</button>
+        <input type="text" id="codigoInput" placeholder="Código de juego" />
+        <button id="unirseBtn" type="button">Unirse</button>
+      </div>
+    </section>
+
+    <p id="codigoJuego"></p>
+    <div id="marcador"></div>
+    <p id="estadoJuego"></p>
+
+    <section id="tablero" aria-label="Tablero de juego"></section>
+
+    <section id="chat" aria-label="Chat del juego">
+      <div id="chatBox"></div>
+      <div id="typingIndicator"></div>
+      <div id="replyPreview">
+        <span id="cancelReplyBtn" onclick="cancelReply()">×</span>
+        <div class="reply-author" id="replyPreviewAuthor"></div>
+        <div class="reply-text" id="replyPreviewText"></div>
+      </div>
+      <div class="chat-input-area">
+        <input type="text" id="mensajeInput" placeholder="Escribe un mensaje..." />
+        <button id="adjuntarBtn" type="button">📎</button>
+        <button id="enviarBtn" type="button">Enviar</button>
+        <button id="corazonBtn" type="button">💖</button>
+      </div>
+      <input type="file" id="galeriaInput" accept="image/*" style="display: none;" />
+      <input type="file" id="camaraInput" accept="image/*" capture="environment" style="display: none;" />
+    </section>
+  </main>
+
+  <div id="modal" class="modal modal-oculto" aria-hidden="true">
+    <div class="modal-contenido">
+      <h2 id="modal-mensaje"></h2>
+      <button id="reiniciarBtn" type="button">Jugar de nuevo</button>
+    </div>
+  </div>
+
+  <div id="reactionPopup" aria-live="polite">
+    <span class="reaction-emoji" onclick="addReaction('🥺')">🥺</span>
+    <span class="reaction-emoji" onclick="addReaction('🥰')">🥰</span>
+    <span class="reaction-emoji" onclick="addReaction('😍')">😍</span>
+    <span class="reaction-emoji" onclick="addReaction('❤️')">❤️</span>
+    <span class="reaction-emoji" onclick="addReaction('😄')">😄</span>
+    <span class="reaction-emoji" onclick="addReaction('😢')">😢</span>
+    <span class="reaction-emoji" onclick="addReaction('😡')">😡</span>
+    <span class="reaction-emoji" onclick="addReaction('😐')">😐</span>
+  </div>
+
+  <audio id="moveSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"></audio>
+  <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3"></audio>
+  <audio id="messageSound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3"></audio>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
