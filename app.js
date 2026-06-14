@@ -3,7 +3,7 @@ const firebaseConfig = {
   authDomain: "x0-para-ana-y-harin.firebaseapp.com",
   databaseURL: "https://x0-para-ana-y-harin-default-rtdb.firebaseio.com",
   projectId: "x0-para-ana-y-harin",
-  storageBucket: "x0-para-ana-y-harin.appspot.com",
+  storageBucket: "x0-para-ana-y-harin.firebasestorage.app",
   messagingSenderId: "525006791707",
   appId: "1:525006791707:web:1e07c6ebedc298c96a04be"
 };
