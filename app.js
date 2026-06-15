@@ -353,9 +353,16 @@ function realizarMovimiento(index) {
 
 function resetJuego() {
   if (!gameRef) return;
+
+  const ganadorAnterior = estadoJuegoActual?.ganador;
+  const puedeIniciarGanador = ganadorAnterior === "jugador1" || ganadorAnterior === "jugador2";
+  const turnoInicial = puedeIniciarGanador
+    ? ganadorAnterior
+    : (Math.random() < 0.5 ? "jugador1" : "jugador2");
+
   gameRef.update({
     tablero: Array(9).fill(""),
-    turno: "jugador1",
+    turno: turnoInicial,
     estado: "jugando",
     ganador: null,
     lineaGanadora: null
@@ -403,9 +410,11 @@ dom.unirseBtn.addEventListener("click", () => {
   if (!codigoJuego) return;
   jugadorId = "jugador2";
   gameRef = db.ref(`juegos/${codigoJuego}`);
+  const turnoInicial = Math.random() < 0.5 ? "jugador1" : "jugador2";
   gameRef.update({
     jugador2: { nombre, simbolo: "💙", isTyping: false },
-    estado: "jugando"
+    estado: "jugando",
+    turno: turnoInicial
   });
   dom.codigoJuego.textContent = `Código del juego: ${codigoJuego}`;
   escucharJuego();
