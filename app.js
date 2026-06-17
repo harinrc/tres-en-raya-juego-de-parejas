@@ -19,6 +19,27 @@ let gameRef = null;
 let typingTimer;
 let currentReplyingTo = null;
 let activeReactionMessageId = null;
+let connectedRefListener = null;
+
+const STORAGE_KEYS = {
+  clientId: "tresenraya-client-id",
+  playerName: "tresenraya-player-name",
+  gameCode: "tresenraya-game-code"
+};
+
+function getOrCreateClientId() {
+  const storedId = localStorage.getItem(STORAGE_KEYS.clientId);
+  if (storedId) return storedId;
+
+  const newId = typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+
+  localStorage.setItem(STORAGE_KEYS.clientId, newId);
+  return newId;
+}
+
+const clientId = getOrCreateClientId();
 
 const dom = {
   tablero: document.getElementById("tablero"),
@@ -29,6 +50,7 @@ const dom = {
   reiniciarBtn: document.getElementById("reiniciarBtn"),
   mensajeInput: document.getElementById("mensajeInput"),
   enviarBtn: document.getElementById("enviarBtn"),
+  codigoInput: document.getElementById("codigoInput"),
   chatBox: document.getElementById("chatBox"),
   corazonBtn: document.getElementById("corazonBtn"),
   modal: document.getElementById("modal"),
@@ -44,6 +66,58 @@ const dom = {
   galeriaInput: document.getElementById("galeriaInput"),
   camaraInput: document.getElementById("camaraInput")
 };
+
+dom.nombreInput.value = localStorage.getItem(STORAGE_KEYS.playerName) || "";
+dom.codigoInput.value = localStorage.getItem(STORAGE_KEYS.gameCode) || "";
+
+function esJugadorActivo(jugador) {
+  return Boolean(jugador && jugador.connected !== false);
+}
+
+function obtenerSlotActual() {
+  if (estadoJuegoActual?.jugador1?.id === clientId) return "jugador1";
+  if (estadoJuegoActual?.jugador2?.id === clientId) return "jugador2";
+  return jugadorId;
+}
+
+function obtenerSlotOpuesto(slot = obtenerSlotActual()) {
+  return slot === "jugador1" ? "jugador2" : "jugador1";
+}
+
+function elegirSlotParaUnirse(state) {
+  if (state?.jugador1?.id === clientId) return "jugador1";
+  if (state?.jugador2?.id === clientId) return "jugador2";
+  if (!esJugadorActivo(state?.jugador1)) return "jugador1";
+  if (!esJugadorActivo(state?.jugador2)) return "jugador2";
+  return null;
+}
+
+function registrarPresencia(slot) {
+  if (!gameRef || !slot) return;
+
+  if (connectedRefListener) {
+    connectedRefListener.off();
+  }
+
+  connectedRefListener = db.ref(".info/connected");
+  connectedRefListener.on("value", (snap) => {
+    if (!snap.val() || !gameRef || !slot) return;
+
+    const playerRef = gameRef.child(slot);
+    playerRef.onDisconnect().update({
+      connected: false,
+      isTyping: false,
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+
+    playerRef.update({
+      id: clientId,
+      nombre: dom.nombreInput.value.trim(),
+      connected: true,
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
+  });
+}
 
 function crearTableroVisual() {
   dom.tablero.innerHTML = "";
@@ -93,6 +167,13 @@ function actualizarEstadoTurno() {
   const nombreTurno = estadoJuegoActual[estadoJuegoActual.turno]?.nombre;
   if (!nombreTurno) return;
   mostrarEstado(estadoJuegoActual.turno === jugadorId ? `💖 ¡Es tu turno, ${nombreTurno}!` : `💕 Turno de ${nombreTurno}...`);
+}
+
+function estaEnMiSesion() {
+  return Boolean(
+    estadoJuegoActual?.jugador1?.id === clientId ||
+    estadoJuegoActual?.jugador2?.id === clientId
+  );
 }
 
 function actualizarMarcadorUI() {
@@ -154,7 +235,7 @@ function ocultarResultado() {
 }
 
 function actualizarTypingIndicator() {
-  const otroJugadorId = jugadorId === "jugador1" ? "jugador2" : "jugador1";
+  const otroJugadorId = obtenerSlotOpuesto();
   if (estadoJuegoActual[otroJugadorId]?.isTyping) {
     dom.typingIndicator.textContent = `${estadoJuegoActual[otroJugadorId].nombre} está escribiendo...`;
   } else {
@@ -172,6 +253,10 @@ function escucharJuego() {
     const state = snap.val();
     if (!state) return;
     estadoJuegoActual = state;
+
+    if (state.jugador1?.id === clientId) jugadorId = "jugador1";
+    if (state.jugador2?.id === clientId) jugadorId = "jugador2";
+
     actualizarTableroUI();
     actualizarMarcadorUI();
     actualizarTypingIndicator();
@@ -383,19 +468,21 @@ dom.crearJuegoBtn.addEventListener("click", () => {
     alert("Por favor, escribe tu nombre mi amor ❤️");
     return;
   }
+  localStorage.setItem(STORAGE_KEYS.playerName, nombre);
   codigoJuego = Math.random().toString(36).substr(2, 5);
   jugadorId = "jugador1";
   gameRef = db.ref(`juegos/${codigoJuego}`);
   gameRef.set({
     tablero: Array(9).fill(""),
-    turno: "jugador1",
-    jugador1: { nombre, simbolo: "❤️", isTyping: false },
+    turno: Math.random() < 0.5 ? "jugador1" : "jugador2",
+    jugador1: { id: clientId, nombre, simbolo: "❤️", isTyping: false, connected: true },
     jugador2: null,
     estado: "esperando",
     ganador: null,
     lineaGanadora: null,
     marcador: { jugador1: 0, jugador2: 0 }
   });
+  localStorage.setItem(STORAGE_KEYS.gameCode, codigoJuego);
   dom.codigoJuego.textContent = `Código del juego: ${codigoJuego}`;
   escucharJuego();
 });
@@ -408,13 +495,42 @@ dom.unirseBtn.addEventListener("click", () => {
   }
   codigoJuego = document.getElementById("codigoInput").value.trim();
   if (!codigoJuego) return;
-  jugadorId = "jugador2";
   gameRef = db.ref(`juegos/${codigoJuego}`);
-  const turnoInicial = Math.random() < 0.5 ? "jugador1" : "jugador2";
-  gameRef.update({
-    jugador2: { nombre, simbolo: "💙", isTyping: false },
-    estado: "jugando",
-    turno: turnoInicial
+  localStorage.setItem(STORAGE_KEYS.playerName, nombre);
+  localStorage.setItem(STORAGE_KEYS.gameCode, codigoJuego);
+  gameRef.once("value").then((snap) => {
+    const state = snap.val();
+    if (!state) {
+      alert("No encontré esa sala.");
+      return;
+    }
+
+    const slot = elegirSlotParaUnirse(state);
+    if (!slot) {
+      alert("La sala ya tiene dos jugadores activos.");
+      return;
+    }
+
+    jugadorId = slot;
+    const jugadorData = {
+      id: clientId,
+      nombre,
+      simbolo: slot === "jugador1" ? "❤️" : "💙",
+      isTyping: false,
+      connected: true
+    };
+
+    const payload = {
+      [slot]: jugadorData,
+      estado: state.estado === "esperando" ? "jugando" : state.estado
+    };
+
+    if (!state.turno || state.estado === "esperando") {
+      payload.turno = Math.random() < 0.5 ? "jugador1" : "jugador2";
+    }
+
+    gameRef.update(payload);
+    registrarPresencia(slot);
   });
   dom.codigoJuego.textContent = `Código del juego: ${codigoJuego}`;
   escucharJuego();
