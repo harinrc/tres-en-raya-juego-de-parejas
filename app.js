@@ -22,6 +22,10 @@ let activeReactionMessageId = null;
 let connectedRefListener = null;
 let mensajesRefActual = null;
 let deferredInstallPrompt = null;
+let presenceTimer = null;
+
+const PRESENCE_HEARTBEAT_MS = 10000;
+const PRESENCE_STALE_MS = 25000;
 
 const STORAGE_KEYS = {
   clientId: "tresenraya-client-id",
@@ -96,8 +100,8 @@ function obtenerSlotOpuesto(slot = obtenerSlotActual()) {
 function elegirSlotParaUnirse(state) {
   if (state?.jugador1?.id === clientId) return "jugador1";
   if (state?.jugador2?.id === clientId) return "jugador2";
-  if (!esJugadorActivo(state?.jugador1)) return "jugador1";
-  if (!esJugadorActivo(state?.jugador2)) return "jugador2";
+  if (!esPresenciaActiva(state?.jugador1)) return "jugador1";
+  if (!esPresenciaActiva(state?.jugador2)) return "jugador2";
   return null;
 }
 
@@ -107,6 +111,13 @@ function prepararSesion(slot, nombre, codigo) {
   localStorage.setItem(STORAGE_KEYS.gameCode, codigo);
   dom.nombreInput.value = nombre;
   dom.codigoInput.value = codigo;
+}
+
+function esPresenciaActiva(jugador) {
+  if (!jugador) return false;
+  if (jugador.connected === false) return false;
+  if (!jugador.lastSeen) return true;
+  return Date.now() - jugador.lastSeen < PRESENCE_STALE_MS;
 }
 
 function registrarPresencia(slot) {
@@ -129,10 +140,23 @@ function registrarPresencia(slot) {
 
     playerRef.update({
       id: clientId,
+      sessionId: clientId,
       nombre: dom.nombreInput.value.trim(),
       connected: true,
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
+
+    if (presenceTimer) {
+      clearInterval(presenceTimer);
+    }
+
+    presenceTimer = setInterval(() => {
+      if (!gameRef || jugadorId !== slot) return;
+      playerRef.update({
+        connected: true,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP
+      });
+    }, PRESENCE_HEARTBEAT_MS);
 
     if (navigator.onLine) {
       setSessionBanner(estadoJuegoActual?.estado === "esperando"
@@ -154,6 +178,10 @@ function detenerEscuchaJuego(ref = gameRef, mensajesRef = mensajesRefActual) {
   if (connectedRefListener) {
     connectedRefListener.off("value");
     connectedRefListener = null;
+  }
+  if (presenceTimer) {
+    clearInterval(presenceTimer);
+    presenceTimer = null;
   }
   mensajesRefActual = null;
 }
@@ -334,10 +362,13 @@ function agregarMensajeAlChat(id, msg) {
     div.appendChild(quote);
   }
 
-  if (msg.tipo === "imagen") {
+  const mensajeEsImagen = msg.tipo === "imagen" || Boolean(msg.imagenUrl) || (typeof msg.texto === "string" && /^https?:\/\//i.test(msg.texto));
+
+  if (mensajeEsImagen) {
     const img = document.createElement("img");
-    img.src = msg.imagenUrl;
+    img.src = msg.imagenUrl || msg.texto;
     img.alt = "foto enviada";
+    img.loading = "lazy";
     div.appendChild(img);
   } else {
     const span = document.createElement("span");
@@ -439,6 +470,7 @@ function uploadImage(file) {
         autor: jugadorId,
         tipo: "imagen",
         imagenUrl: downloadURL,
+        texto: "",
         timestamp: firebase.database.ServerValue.TIMESTAMP
       });
       playSound("messageSound");
@@ -453,6 +485,7 @@ function enviarMensajeConImagen(imageUrl) {
     autor: jugadorId,
     tipo: "imagen",
     imagenUrl: imageUrl,
+    texto: "",
     timestamp: firebase.database.ServerValue.TIMESTAMP
   });
   playSound("messageSound");
