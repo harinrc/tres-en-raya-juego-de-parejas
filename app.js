@@ -20,6 +20,8 @@ let typingTimer;
 let currentReplyingTo = null;
 let activeReactionMessageId = null;
 let connectedRefListener = null;
+let mensajesRefActual = null;
+let deferredInstallPrompt = null;
 
 const STORAGE_KEYS = {
   clientId: "tresenraya-client-id",
@@ -57,6 +59,8 @@ const dom = {
   modalMensaje: document.getElementById("modal-mensaje"),
   nombreInput: document.getElementById("nombreInput"),
   marcador: document.getElementById("marcador"),
+  sessionBanner: document.getElementById("sessionBanner"),
+  instalarBtn: document.getElementById("instalarBtn"),
   typingIndicator: document.getElementById("typingIndicator"),
   replyPreview: document.getElementById("replyPreview"),
   replyPreviewAuthor: document.getElementById("replyPreviewAuthor"),
@@ -69,6 +73,11 @@ const dom = {
 
 dom.nombreInput.value = localStorage.getItem(STORAGE_KEYS.playerName) || "";
 dom.codigoInput.value = localStorage.getItem(STORAGE_KEYS.gameCode) || "";
+
+function setSessionBanner(texto, state = "idle") {
+  dom.sessionBanner.textContent = texto;
+  dom.sessionBanner.dataset.state = state;
+}
 
 function esJugadorActivo(jugador) {
   return Boolean(jugador && jugador.connected !== false);
@@ -90,6 +99,14 @@ function elegirSlotParaUnirse(state) {
   if (!esJugadorActivo(state?.jugador1)) return "jugador1";
   if (!esJugadorActivo(state?.jugador2)) return "jugador2";
   return null;
+}
+
+function prepararSesion(slot, nombre, codigo) {
+  jugadorId = slot;
+  localStorage.setItem(STORAGE_KEYS.playerName, nombre);
+  localStorage.setItem(STORAGE_KEYS.gameCode, codigo);
+  dom.nombreInput.value = nombre;
+  dom.codigoInput.value = codigo;
 }
 
 function registrarPresencia(slot) {
@@ -116,7 +133,29 @@ function registrarPresencia(slot) {
       connected: true,
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
+
+    if (navigator.onLine) {
+      setSessionBanner(estadoJuegoActual?.estado === "esperando"
+        ? "Esperando a que se una tu rival..."
+        : "Conexión activa y lista.",
+      "success");
+    }
   });
+}
+
+function detenerEscuchaJuego(ref = gameRef, mensajesRef = mensajesRefActual) {
+  if (ref) {
+    ref.off("value");
+  }
+  if (mensajesRef) {
+    mensajesRef.off("child_added");
+    mensajesRef.off("child_changed");
+  }
+  if (connectedRefListener) {
+    connectedRefListener.off("value");
+    connectedRefListener = null;
+  }
+  mensajesRefActual = null;
 }
 
 function crearTableroVisual() {
@@ -245,9 +284,7 @@ function actualizarTypingIndicator() {
 
 function escucharJuego() {
   if (!gameRef) return;
-  gameRef.off("value");
-  gameRef.off("child_added");
-  gameRef.off("child_changed");
+  detenerEscuchaJuego();
 
   gameRef.on("value", (snap) => {
     const state = snap.val();
@@ -261,18 +298,24 @@ function escucharJuego() {
     actualizarMarcadorUI();
     actualizarTypingIndicator();
     if (state.estado === "finalizado") {
+      setSessionBanner("Partida finalizada. Puedes reiniciar cuando quieras.", "success");
       mostrarResultado(state.ganador);
     } else if (state.estado === "jugando") {
       ocultarResultado();
+      setSessionBanner("Partida en curso.", "success");
       actualizarEstadoTurno();
+    } else if (state.estado === "esperando") {
+      setSessionBanner("Esperando a tu rival para empezar.", "idle");
+      mostrarEstado("Esperando que se una tu amorcito... 🥰");
     } else {
+      setSessionBanner("Sala lista.", "idle");
       mostrarEstado("Esperando que se una tu amorcito... 🥰");
     }
   });
 
-  const mensajesRef = gameRef.child("mensajes");
-  mensajesRef.on("child_added", (snap) => agregarMensajeAlChat(snap.key, snap.val()));
-  mensajesRef.on("child_changed", (snap) => actualizarMensajeEnChat(snap.key, snap.val()));
+  mensajesRefActual = gameRef.child("mensajes");
+  mensajesRefActual.on("child_added", (snap) => agregarMensajeAlChat(snap.key, snap.val()));
+  mensajesRefActual.on("child_changed", (snap) => actualizarMensajeEnChat(snap.key, snap.val()));
 }
 
 function agregarMensajeAlChat(id, msg) {
@@ -452,6 +495,7 @@ function resetJuego() {
     ganador: null,
     lineaGanadora: null
   });
+  setSessionBanner("Nueva ronda lista.", "success");
 }
 
 function abrirSelectorFoto() {
@@ -468,6 +512,7 @@ dom.crearJuegoBtn.addEventListener("click", () => {
     alert("Por favor, escribe tu nombre mi amor ❤️");
     return;
   }
+  detenerEscuchaJuego();
   localStorage.setItem(STORAGE_KEYS.playerName, nombre);
   codigoJuego = Math.random().toString(36).substr(2, 5);
   jugadorId = "jugador1";
@@ -484,6 +529,7 @@ dom.crearJuegoBtn.addEventListener("click", () => {
   });
   localStorage.setItem(STORAGE_KEYS.gameCode, codigoJuego);
   dom.codigoJuego.textContent = `Código del juego: ${codigoJuego}`;
+  setSessionBanner("Sala creada. Comparte el código con tu rival.", "success");
   escucharJuego();
 });
 
@@ -495,23 +541,26 @@ dom.unirseBtn.addEventListener("click", () => {
   }
   codigoJuego = document.getElementById("codigoInput").value.trim();
   if (!codigoJuego) return;
+  detenerEscuchaJuego();
   gameRef = db.ref(`juegos/${codigoJuego}`);
   localStorage.setItem(STORAGE_KEYS.playerName, nombre);
   localStorage.setItem(STORAGE_KEYS.gameCode, codigoJuego);
   gameRef.once("value").then((snap) => {
     const state = snap.val();
     if (!state) {
+      setSessionBanner("No encontré esa sala.", "error");
       alert("No encontré esa sala.");
       return;
     }
 
     const slot = elegirSlotParaUnirse(state);
     if (!slot) {
+      setSessionBanner("Sala ocupada. Prueba con otro código o espera a que alguien salga.", "warning");
       alert("La sala ya tiene dos jugadores activos.");
       return;
     }
 
-    jugadorId = slot;
+    prepararSesion(slot, nombre, codigoJuego);
     const jugadorData = {
       id: clientId,
       nombre,
@@ -531,9 +580,10 @@ dom.unirseBtn.addEventListener("click", () => {
 
     gameRef.update(payload);
     registrarPresencia(slot);
+    escucharJuego();
+    setSessionBanner(slot === "jugador1" ? "Te reconectaste como jugador 1." : "Te reconectaste como jugador 2.", "success");
   });
   dom.codigoJuego.textContent = `Código del juego: ${codigoJuego}`;
-  escucharJuego();
 });
 
 dom.enviarBtn.addEventListener("click", () => {
@@ -581,6 +631,49 @@ dom.mensajeInput.addEventListener("input", () => {
 });
 
 dom.reiniciarBtn.addEventListener("click", resetJuego);
+dom.instalarBtn.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) {
+    setSessionBanner("Tu navegador no mostró la opción de instalar todavía.", "warning");
+    return;
+  }
+
+  deferredInstallPrompt.prompt();
+  const choice = await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  dom.instalarBtn.hidden = true;
+  setSessionBanner(choice.outcome === "accepted" ? "App instalada en tu dispositivo." : "Instalación cancelada.", choice.outcome === "accepted" ? "success" : "idle");
+});
+
+window.addEventListener("beforeinstallprompt", (event) => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  dom.instalarBtn.hidden = false;
+  setSessionBanner("Ya puedes instalar la app en tu pantalla de inicio.", "success");
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  dom.instalarBtn.hidden = true;
+  setSessionBanner("La app quedó instalada.", "success");
+});
+
+window.addEventListener("offline", () => {
+  setSessionBanner("Sin conexión. Reconectando...", "warning");
+  mostrarEstado("Sin conexión temporalmente...");
+});
+
+window.addEventListener("online", () => {
+  if (estadoJuegoActual?.estado === "esperando") {
+    setSessionBanner("Esperando a que se una tu rival...", "idle");
+  } else if (estadoJuegoActual?.estado === "jugando") {
+    setSessionBanner("Conexión recuperada.", "success");
+  }
+});
+
 document.body.addEventListener("click", (e) => {
   if (!dom.reactionPopup.contains(e.target)) dom.reactionPopup.classList.remove("visible");
 });
+
+if (!navigator.onLine) {
+  setSessionBanner("Sin conexión. La app sigue abierta y se reconecta sola.", "warning");
+}

@@ -28,10 +28,12 @@
           <button id="crearJuegoBtn" type="button">Crear juego</button>
           <input type="text" id="codigoInput" placeholder="Código de juego" autocomplete="one-time-code" />
           <button id="unirseBtn" type="button">Unirse</button>
+          <button id="instalarBtn" type="button" class="secondary-btn" hidden>Instalar app</button>
         </div>
       </section>
 
       <section class="status-panel" aria-live="polite">
+        <div id="sessionBanner" class="session-banner" data-state="idle">Listo para jugar</div>
         <p id="codigoJuego"></p>
         <div id="marcador"></div>
         <p id="estadoJuego"></p>
