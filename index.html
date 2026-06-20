@@ -37,12 +37,14 @@
 
       <section class="status-panel" aria-live="polite">
         <div id="sessionBanner" class="session-banner" data-state="idle">Listo para jugar</div>
+        <div id="countdownBadge" class="countdown-badge" hidden>3</div>
         <div class="players-panel" aria-label="Estado de jugadores">
           <div id="player1Badge" class="player-badge">
             <span class="player-dot"></span>
             <div class="player-meta">
               <strong>Jugador 1</strong>
               <span>Esperando...</span>
+              <span class="turn-tag">Sin turno</span>
             </div>
           </div>
           <div id="player2Badge" class="player-badge">
@@ -50,6 +52,7 @@
             <div class="player-meta">
               <strong>Jugador 2</strong>
               <span>Esperando...</span>
+              <span class="turn-tag">Sin turno</span>
             </div>
           </div>
         </div>

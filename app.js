@@ -23,6 +23,7 @@ let connectedRefListener = null;
 let mensajesRefActual = null;
 let deferredInstallPrompt = null;
 let presenceTimer = null;
+let countdownTimer = null;
 
 const PRESENCE_HEARTBEAT_MS = 10000;
 const PRESENCE_STALE_MS = 25000;
@@ -68,6 +69,7 @@ const dom = {
   instalarBtn: document.getElementById("instalarBtn"),
   themeToggleBtn: document.getElementById("themeToggleBtn"),
   themeColorMeta: document.getElementById("themeColorMeta"),
+  countdownBadge: document.getElementById("countdownBadge"),
   player1Badge: document.getElementById("player1Badge"),
   player2Badge: document.getElementById("player2Badge"),
   typingIndicator: document.getElementById("typingIndicator"),
@@ -104,6 +106,15 @@ function setSessionBanner(texto, state = "idle") {
   dom.sessionBanner.dataset.state = state;
 }
 
+function setCountdownBadge(texto) {
+  if (!texto) {
+    dom.countdownBadge.hidden = true;
+    return;
+  }
+  dom.countdownBadge.hidden = false;
+  dom.countdownBadge.textContent = texto;
+}
+
 function actualizarIndicadoresJugadores() {
   const jugadores = [
     { slot: "jugador1", badge: dom.player1Badge, fallback: "Jugador 1" },
@@ -114,14 +125,16 @@ function actualizarIndicadoresJugadores() {
     const jugador = estadoJuegoActual?.[slot];
     const titulo = badge.querySelector("strong");
     const subtitulo = badge.querySelector("span:last-child");
+    const turnoTag = badge.querySelector(".turn-tag");
     const activo = esPresenciaActiva(jugador);
     const esTurno = estadoJuegoActual?.turno === slot;
     const esYo = jugador?.id === clientId;
 
     titulo.textContent = jugador?.nombre || fallback;
     subtitulo.textContent = jugador
-      ? `${activo ? "En linea" : "Desconectado"}${esYo ? " · Tú" : ""}${esTurno ? " · Turno" : ""}`
+      ? `${activo ? "En línea" : "Desconectado"}${esYo ? " · Tú" : ""}${esTurno ? " · Turno" : ""}`
       : "Esperando...";
+    turnoTag.textContent = esTurno ? "Turno actual" : "Sin turno";
 
     badge.dataset.status = jugador ? (activo ? "online" : "offline") : "waiting";
     badge.dataset.activeTurn = esTurno ? "true" : "false";
@@ -311,6 +324,39 @@ function actualizarTableroUI() {
   }
 }
 
+function limpiarCountdown() {
+  if (countdownTimer) {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+  setCountdownBadge(null);
+}
+
+function iniciarCountdown(inicioEnMs, turnoInicial) {
+  limpiarCountdown();
+
+  const tick = () => {
+    const restante = Math.max(0, inicioEnMs - Date.now());
+    const segundos = Math.ceil(restante / 1000);
+    setCountdownBadge(String(Math.max(1, segundos)));
+    setSessionBanner(`Empieza en ${Math.max(1, segundos)}...`, "warning");
+
+    if (restante <= 0) {
+      limpiarCountdown();
+      if (gameRef) {
+        gameRef.update({
+          estado: "jugando",
+          turno: turnoInicial,
+          inicioPartidaEn: null
+        });
+      }
+    }
+  };
+
+  tick();
+  countdownTimer = setInterval(tick, 250);
+}
+
 function verificarGanador(tablero, simboloActual) {
   const combos = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
   for (const combo of combos) {
@@ -372,16 +418,24 @@ function escucharJuego() {
     actualizarIndicadoresJugadores();
     actualizarTypingIndicator();
     if (state.estado === "finalizado") {
+      limpiarCountdown();
       setSessionBanner("Partida finalizada. Puedes reiniciar cuando quieras.", "success");
       mostrarResultado(state.ganador);
     } else if (state.estado === "jugando") {
+      limpiarCountdown();
       ocultarResultado();
       setSessionBanner("Partida en curso.", "success");
       actualizarEstadoTurno();
+    } else if (state.estado === "cuentaRegresiva") {
+      ocultarResultado();
+      const inicioEnMs = state.inicioPartidaEn || (Date.now() + 3000);
+      iniciarCountdown(inicioEnMs, state.turno || (Math.random() < 0.5 ? "jugador1" : "jugador2"));
     } else if (state.estado === "esperando") {
+      limpiarCountdown();
       setSessionBanner("Esperando a tu rival para empezar.", "idle");
       mostrarEstado("Esperando que se una tu amorcito... 🥰");
     } else {
+      limpiarCountdown();
       setSessionBanner("Sala lista.", "idle");
       mostrarEstado("Esperando que se una tu amorcito... 🥰");
     }
@@ -491,7 +545,9 @@ function addReaction(emoji) {
 }
 
 function uploadImage(file) {
-  if (!file || !file.type.startsWith("image/")) {
+  const nombreArchivo = file?.name || "";
+  const pareceImagen = Boolean(file && (file.type?.startsWith("image/") || /\.(png|jpe?g|gif|webp|bmp|heic|heif)$/i.test(nombreArchivo)));
+  if (!file || !pareceImagen) {
     alert("Solo se pueden enviar imágenes, mi amor 💕");
     return;
   }
@@ -650,11 +706,12 @@ dom.unirseBtn.addEventListener("click", () => {
 
     const payload = {
       [slot]: jugadorData,
-      estado: state.estado === "esperando" ? "jugando" : state.estado
+      estado: state.estado === "esperando" ? "cuentaRegresiva" : state.estado
     };
 
     if (!state.turno || state.estado === "esperando") {
       payload.turno = Math.random() < 0.5 ? "jugador1" : "jugador2";
+      payload.inicioPartidaEn = Date.now() + 3000;
     }
 
     gameRef.update(payload);
