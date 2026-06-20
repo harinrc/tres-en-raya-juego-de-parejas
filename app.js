@@ -24,6 +24,7 @@ let mensajesRefActual = null;
 let deferredInstallPrompt = null;
 let presenceTimer = null;
 let countdownTimer = null;
+let countdownTargetMs = null;
 
 const PRESENCE_HEARTBEAT_MS = 10000;
 const PRESENCE_STALE_MS = 25000;
@@ -173,8 +174,7 @@ function prepararSesion(slot, nombre, codigo) {
 
 function esPresenciaActiva(jugador) {
   if (!jugador) return false;
-  if (jugador.connected === false) return false;
-  if (!jugador.lastSeen) return true;
+  if (!jugador.lastSeen) return jugador.connected !== false;
   return Date.now() - jugador.lastSeen < PRESENCE_STALE_MS;
 }
 
@@ -225,7 +225,7 @@ function registrarPresencia(slot) {
   });
 }
 
-function detenerEscuchaJuego(ref = gameRef, mensajesRef = mensajesRefActual) {
+function detenerEscuchaJuego(ref = gameRef, mensajesRef = mensajesRefActual, limpiarPresencia = true) {
   if (ref) {
     ref.off("value");
   }
@@ -233,13 +233,15 @@ function detenerEscuchaJuego(ref = gameRef, mensajesRef = mensajesRefActual) {
     mensajesRef.off("child_added");
     mensajesRef.off("child_changed");
   }
-  if (connectedRefListener) {
-    connectedRefListener.off("value");
-    connectedRefListener = null;
-  }
-  if (presenceTimer) {
-    clearInterval(presenceTimer);
-    presenceTimer = null;
+  if (limpiarPresencia) {
+    if (connectedRefListener) {
+      connectedRefListener.off("value");
+      connectedRefListener = null;
+    }
+    if (presenceTimer) {
+      clearInterval(presenceTimer);
+      presenceTimer = null;
+    }
   }
   mensajesRefActual = null;
 }
@@ -329,21 +331,26 @@ function limpiarCountdown() {
     clearInterval(countdownTimer);
     countdownTimer = null;
   }
+  countdownTargetMs = null;
   setCountdownBadge(null);
 }
 
 function iniciarCountdown(inicioEnMs, turnoInicial) {
+  if (!inicioEnMs) return;
+  if (countdownTimer && countdownTargetMs === inicioEnMs) return;
+
   limpiarCountdown();
+  countdownTargetMs = inicioEnMs;
 
   const tick = () => {
     const restante = Math.max(0, inicioEnMs - Date.now());
-    const segundos = Math.ceil(restante / 1000);
-    setCountdownBadge(String(Math.max(1, segundos)));
-    setSessionBanner(`Empieza en ${Math.max(1, segundos)}...`, "warning");
+    const segundos = Math.max(0, Math.ceil(restante / 1000));
+    setCountdownBadge(String(segundos));
+    setSessionBanner(`Empieza en ${segundos}...`, "warning");
 
     if (restante <= 0) {
       limpiarCountdown();
-      if (gameRef) {
+      if (gameRef && obtenerSlotActual() === "jugador1") {
         gameRef.update({
           estado: "jugando",
           turno: turnoInicial,
@@ -403,7 +410,7 @@ function actualizarTypingIndicator() {
 
 function escucharJuego() {
   if (!gameRef) return;
-  detenerEscuchaJuego();
+  detenerEscuchaJuego(gameRef, mensajesRefActual, false);
 
   gameRef.on("value", (snap) => {
     const state = snap.val();
@@ -551,8 +558,8 @@ function uploadImage(file) {
     alert("Solo se pueden enviar imágenes, mi amor 💕");
     return;
   }
-  if (file.size > 4 * 1024 * 1024) {
-    alert("La foto es muy grande. Usa una imagen de hasta 4 MB.");
+  if (file.size > 12 * 1024 * 1024) {
+    alert("La foto es muy grande. Usa una imagen de hasta 12 MB.");
     return;
   }
 
@@ -665,6 +672,7 @@ dom.crearJuegoBtn.addEventListener("click", () => {
   localStorage.setItem(STORAGE_KEYS.gameCode, codigoJuego);
   dom.codigoJuego.textContent = `Código del juego: ${codigoJuego}`;
   setSessionBanner("Sala creada. Comparte el código con tu rival.", "success");
+  registrarPresencia("jugador1");
   escucharJuego();
 });
 
