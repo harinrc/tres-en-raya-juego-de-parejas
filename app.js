@@ -30,7 +30,8 @@ const PRESENCE_STALE_MS = 25000;
 const STORAGE_KEYS = {
   clientId: "tresenraya-client-id",
   playerName: "tresenraya-player-name",
-  gameCode: "tresenraya-game-code"
+  gameCode: "tresenraya-game-code",
+  theme: "tresenraya-theme"
 };
 
 function getOrCreateClientId() {
@@ -65,6 +66,10 @@ const dom = {
   marcador: document.getElementById("marcador"),
   sessionBanner: document.getElementById("sessionBanner"),
   instalarBtn: document.getElementById("instalarBtn"),
+  themeToggleBtn: document.getElementById("themeToggleBtn"),
+  themeColorMeta: document.getElementById("themeColorMeta"),
+  player1Badge: document.getElementById("player1Badge"),
+  player2Badge: document.getElementById("player2Badge"),
   typingIndicator: document.getElementById("typingIndicator"),
   replyPreview: document.getElementById("replyPreview"),
   replyPreviewAuthor: document.getElementById("replyPreviewAuthor"),
@@ -78,9 +83,49 @@ const dom = {
 dom.nombreInput.value = localStorage.getItem(STORAGE_KEYS.playerName) || "";
 dom.codigoInput.value = localStorage.getItem(STORAGE_KEYS.gameCode) || "";
 
+function obtenerTemaInicial() {
+  const temaGuardado = localStorage.getItem(STORAGE_KEYS.theme);
+  if (temaGuardado === "light" || temaGuardado === "dark") return temaGuardado;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function aplicarTema(theme) {
+  document.documentElement.dataset.theme = theme;
+  localStorage.setItem(STORAGE_KEYS.theme, theme);
+  const esOscuro = theme === "dark";
+  dom.themeToggleBtn.textContent = esOscuro ? "☀️ Modo claro" : "🌙 Modo oscuro";
+  dom.themeColorMeta.setAttribute("content", esOscuro ? "#20152d" : "#ff4d88");
+}
+
+aplicarTema(obtenerTemaInicial());
+
 function setSessionBanner(texto, state = "idle") {
   dom.sessionBanner.textContent = texto;
   dom.sessionBanner.dataset.state = state;
+}
+
+function actualizarIndicadoresJugadores() {
+  const jugadores = [
+    { slot: "jugador1", badge: dom.player1Badge, fallback: "Jugador 1" },
+    { slot: "jugador2", badge: dom.player2Badge, fallback: "Jugador 2" }
+  ];
+
+  jugadores.forEach(({ slot, badge, fallback }) => {
+    const jugador = estadoJuegoActual?.[slot];
+    const titulo = badge.querySelector("strong");
+    const subtitulo = badge.querySelector("span:last-child");
+    const activo = esPresenciaActiva(jugador);
+    const esTurno = estadoJuegoActual?.turno === slot;
+    const esYo = jugador?.id === clientId;
+
+    titulo.textContent = jugador?.nombre || fallback;
+    subtitulo.textContent = jugador
+      ? `${activo ? "En linea" : "Desconectado"}${esYo ? " · Tú" : ""}${esTurno ? " · Turno" : ""}`
+      : "Esperando...";
+
+    badge.dataset.status = jugador ? (activo ? "online" : "offline") : "waiting";
+    badge.dataset.activeTurn = esTurno ? "true" : "false";
+  });
 }
 
 function esJugadorActivo(jugador) {
@@ -324,6 +369,7 @@ function escucharJuego() {
 
     actualizarTableroUI();
     actualizarMarcadorUI();
+    actualizarIndicadoresJugadores();
     actualizarTypingIndicator();
     if (state.estado === "finalizado") {
       setSessionBanner("Partida finalizada. Puedes reiniciar cuando quieras.", "success");
@@ -664,6 +710,10 @@ dom.mensajeInput.addEventListener("input", () => {
 });
 
 dom.reiniciarBtn.addEventListener("click", resetJuego);
+dom.themeToggleBtn.addEventListener("click", () => {
+  const siguienteTema = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  aplicarTema(siguienteTema);
+});
 dom.instalarBtn.addEventListener("click", async () => {
   if (!deferredInstallPrompt) {
     setSessionBanner("Tu navegador no mostró la opción de instalar todavía.", "warning");

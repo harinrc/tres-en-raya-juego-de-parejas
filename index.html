@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Juego de X0 con amor 💖</title>
-  <meta name="theme-color" content="#ff4d88" />
+  <meta name="theme-color" content="#ff4d88" id="themeColorMeta" />
   <meta name="description" content="Juego de tres en raya con chat, reacciones y experiencia PWA para jugar en pareja." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -16,6 +16,9 @@
   <div class="page-shell">
     <main class="main-container">
       <header class="hero-card">
+        <div class="hero-actions">
+          <button id="themeToggleBtn" type="button" class="secondary-btn theme-toggle-btn" aria-label="Cambiar tema">🌙 Modo oscuro</button>
+        </div>
         <p class="eyebrow">Pareja conectada</p>
         <h1>❤️ Te amo mucho mi amor ❤️</h1>
         <h2 id="titulo2">Juntos por siempre</h2>
@@ -34,6 +37,22 @@
 
       <section class="status-panel" aria-live="polite">
         <div id="sessionBanner" class="session-banner" data-state="idle">Listo para jugar</div>
+        <div class="players-panel" aria-label="Estado de jugadores">
+          <div id="player1Badge" class="player-badge">
+            <span class="player-dot"></span>
+            <div class="player-meta">
+              <strong>Jugador 1</strong>
+              <span>Esperando...</span>
+            </div>
+          </div>
+          <div id="player2Badge" class="player-badge">
+            <span class="player-dot"></span>
+            <div class="player-meta">
+              <strong>Jugador 2</strong>
+              <span>Esperando...</span>
+            </div>
+          </div>
+        </div>
         <p id="codigoJuego"></p>
         <div id="marcador"></div>
         <p id="estadoJuego"></p>
