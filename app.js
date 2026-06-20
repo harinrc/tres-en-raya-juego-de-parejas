@@ -27,7 +27,7 @@ let countdownTimer = null;
 let countdownTargetMs = null;
 
 const PRESENCE_HEARTBEAT_MS = 10000;
-const PRESENCE_STALE_MS = 25000;
+const PRESENCE_STALE_MS = 45000;
 
 const STORAGE_KEYS = {
   clientId: "tresenraya-client-id",
@@ -347,10 +347,11 @@ function iniciarCountdown(inicioEnMs, turnoInicial) {
     const segundos = Math.max(0, Math.ceil(restante / 1000));
     setCountdownBadge(String(segundos));
     setSessionBanner(`Empieza en ${segundos}...`, "warning");
+    mostrarEstado(`La partida empieza en ${segundos}...`);
 
     if (restante <= 0) {
       limpiarCountdown();
-      if (gameRef && obtenerSlotActual() === "jugador1") {
+      if (gameRef) {
         gameRef.update({
           estado: "jugando",
           turno: turnoInicial,
@@ -433,6 +434,9 @@ function escucharJuego() {
       ocultarResultado();
       setSessionBanner("Partida en curso.", "success");
       actualizarEstadoTurno();
+      if (!estadoJuegoActual?.jugador1 || !estadoJuegoActual?.jugador2 || !estadoJuegoActual?.turno) {
+        mostrarEstado("Partida en curso...");
+      }
     } else if (state.estado === "cuentaRegresiva") {
       ocultarResultado();
       const inicioEnMs = state.inicioPartidaEn || (Date.now() + 3000);
