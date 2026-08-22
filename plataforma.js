@@ -52,23 +52,82 @@ dom.themeToggleBtn.addEventListener("click", () => {
 aplicarTema(obtenerTemaInicial());
 
 /* ---------- Instalación PWA ---------- */
+const INSTALL_KEY = "juegajuntos-instalada";
+
+function estaInstalada() {
+  return window.matchMedia("(display-mode: standalone)").matches
+    || window.navigator.standalone === true
+    || localStorage.getItem(INSTALL_KEY) === "true";
+}
+
+function esIOS() {
+  return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+}
+
+function mostrarBotonInstalar(texto) {
+  dom.instalarBtn.textContent = texto;
+  dom.instalarBtn.hidden = false;
+}
+
+function ocultarBotonInstalar() {
+  dom.instalarBtn.hidden = true;
+}
+
+function actualizarBotonInstalar() {
+  if (estaInstalada()) {
+    ocultarBotonInstalar();
+    return;
+  }
+  if (deferredInstallPrompt) {
+    mostrarBotonInstalar("⬇️ Instalar app");
+  } else if (esIOS()) {
+    mostrarBotonInstalar("📲 Cómo instalar");
+  }
+}
+
 window.addEventListener("beforeinstallprompt", (event) => {
   event.preventDefault();
   deferredInstallPrompt = event;
-  dom.instalarBtn.hidden = false;
+  // El navegador solo ofrece instalar si la app no está instalada.
+  localStorage.removeItem(INSTALL_KEY);
+  actualizarBotonInstalar();
 });
 
 dom.instalarBtn.addEventListener("click", async () => {
-  if (!deferredInstallPrompt) return;
+  if (!deferredInstallPrompt) {
+    // iOS no expone la instalación automática: se explica el paso manual.
+    dom.instalarBtn.textContent = "Compartir → Añadir a inicio";
+    setTimeout(() => actualizarBotonInstalar(), 5000);
+    return;
+  }
+
   deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
+  const eleccion = await deferredInstallPrompt.userChoice;
   deferredInstallPrompt = null;
-  dom.instalarBtn.hidden = true;
+
+  if (eleccion.outcome === "accepted") {
+    localStorage.setItem(INSTALL_KEY, "true");
+    ocultarBotonInstalar();
+  } else {
+    actualizarBotonInstalar();
+  }
 });
 
 window.addEventListener("appinstalled", () => {
-  dom.instalarBtn.hidden = true;
+  localStorage.setItem(INSTALL_KEY, "true");
+  deferredInstallPrompt = null;
+  ocultarBotonInstalar();
 });
+
+// Si la app se desinstala, el navegador vuelve a ofrecer la instalación.
+window.matchMedia("(display-mode: standalone)").addEventListener("change", (evento) => {
+  if (evento.matches) {
+    localStorage.setItem(INSTALL_KEY, "true");
+    ocultarBotonInstalar();
+  }
+});
+
+actualizarBotonInstalar();
 
 /* ---------- Utilidades ---------- */
 function enlaceAbsoluto(url) {
