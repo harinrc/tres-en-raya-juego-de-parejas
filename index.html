@@ -3,121 +3,183 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Juego de X0 con amor 💖</title>
+  <title>Juega Juntos · Plataforma de juegos online para jugar con quien quieras</title>
   <meta name="theme-color" content="#ff4d88" id="themeColorMeta" />
-  <meta name="description" content="Juego de tres en raya con chat, reacciones y experiencia PWA para jugar en pareja." />
+  <meta name="description" content="Plataforma de juegos online y multijugador para jugar con amigos, familia, compañeros o tu pareja. Salas privadas, chat en vivo y nuevos juegos cada mes." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Juega Juntos · Juegos online para jugar con quien quieras" />
+  <meta property="og:description" content="Juegos online y multijugador para amigos, familia, compañeros o parejas: salas privadas, chat en vivo y más juegos en camino." />
+  <meta property="og:image" content="icono-app/amor-juegos-512.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/png" sizes="192x192" href="icono-app/amor-juegos-192.png" />
   <link rel="shortcut icon" href="icono-app/amor-juegos-192.png" />
   <link rel="apple-touch-icon" href="icono-app/amor-juegos-192.png" />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="plataforma.css" />
 </head>
 <body>
   <div class="page-shell">
-    <main class="main-container">
-      <header class="hero-card">
-        <div class="hero-actions">
-          <button id="themeToggleBtn" type="button" class="secondary-btn theme-toggle-btn" aria-label="Cambiar tema">🌙 Modo oscuro</button>
-        </div>
-        <p class="eyebrow">Pareja conectada</p>
-        <h1>❤️ Te amo mucho mi amor ❤️</h1>
-        <h2 id="titulo2">Juntos por siempre</h2>
-        <h3 id="titulo3">Juguemos y chatiemos al mismo tiempo mi amor 💌</h3>
-      </header>
+    <header class="site-header">
+      <a class="brand" href="index.html">
+        <img src="icono-app/amor-juegos-192.png" alt="" width="40" height="40" />
+        <span>
+          <strong>Juega Juntos</strong>
+          <small>Juega con quien quieras, estén donde estén</small>
+        </span>
+      </a>
+      <nav class="site-nav" aria-label="Navegación principal">
+        <a href="#catalogo">Juegos</a>
+        <a href="#proximamente">Próximamente</a>
+        <a href="#como-funciona">Cómo funciona</a>
+      </nav>
+      <div class="header-actions">
+        <button id="instalarBtn" type="button" class="ghost-btn" hidden>⬇️ Instalar</button>
+        <button id="themeToggleBtn" type="button" class="ghost-btn" aria-label="Cambiar tema">🌙 Modo oscuro</button>
+      </div>
+    </header>
 
-      <section id="controls" aria-label="Crear o unirse al juego">
-        <div class="control-grid">
-          <input type="text" id="nombreInput" placeholder="Escribe tu nombre" autocomplete="nickname" />
-          <button id="crearJuegoBtn" type="button">Crear juego</button>
-          <input type="text" id="codigoInput" placeholder="Código de juego" autocomplete="one-time-code" />
-          <button id="unirseBtn" type="button">Unirse</button>
-          <button id="instalarBtn" type="button" class="secondary-btn" hidden>Instalar app</button>
+    <main>
+      <section class="hero">
+        <div class="hero-text">
+          <p class="eyebrow">Plataforma multijugador</p>
+          <h1>Juegos online para jugar <span class="accent">con quien quieras</span></h1>
+          <p class="hero-sub">
+            Amigos, familia, compañeros de clase o tu pareja: crea una sala privada, comparte el
+            código y jueguen en tiempo real desde cualquier dispositivo. Chat, reacciones y fotos
+            incluidos. Cada juego tiene su propio enlace para compartirlo al instante.
+          </p>
+          <div class="hero-cta">
+            <a class="primary-btn" href="juegos/tres-en-raya/index.html">▶ Jugar ahora</a>
+            <a class="ghost-btn" href="#catalogo">Ver todos los juegos</a>
+          </div>
+          <ul class="audience-chips" aria-label="Categorías destacadas">
+            <li>💑 Parejas</li>
+            <li>👫 Amigos</li>
+            <li>👨‍👩‍👧 Familia</li>
+            <li>🎯 Clásicos</li>
+            <li>🧠 Ingenio</li>
+            <li>🎉 Fiesta</li>
+          </ul>
+          <ul class="hero-stats">
+            <li><strong id="statDisponibles">0</strong><span>disponibles</span></li>
+            <li><strong id="statProximos">0</strong><span>en camino</span></li>
+            <li><strong>0€</strong><span>gratis siempre</span></li>
+          </ul>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="art-card art-card-1">❤️ <span>Tres en raya</span></div>
+          <div class="art-card art-card-2">🔤 <span>Ahorcado</span></div>
+          <div class="art-card art-card-3">🎲 <span>Verdad o reto</span></div>
         </div>
       </section>
 
-      <section class="status-panel" aria-live="polite">
-        <div id="sessionBanner" class="session-banner" data-state="idle">Listo para jugar</div>
-        <div id="countdownBadge" class="countdown-badge" hidden>3</div>
-        <div class="players-panel" aria-label="Estado de jugadores">
-          <div id="player1Badge" class="player-badge">
-            <span class="player-dot"></span>
-            <div class="player-meta">
-              <strong>Jugador 1</strong>
-              <span>Esperando...</span>
-              <span class="turn-tag">Sin turno</span>
-            </div>
+      <section id="catalogo" class="catalog" aria-labelledby="catalogoTitulo">
+        <div class="section-head">
+          <div>
+            <h2 id="catalogoTitulo">Catálogo de juegos</h2>
+            <p>Filtra por categoría y comparte el enlace único de cada juego.</p>
           </div>
-          <div id="player2Badge" class="player-badge">
-            <span class="player-dot"></span>
-            <div class="player-meta">
-              <strong>Jugador 2</strong>
-              <span>Esperando...</span>
-              <span class="turn-tag">Sin turno</span>
+          <div class="catalog-tools">
+            <label class="search-field">
+              <span class="sr-only">Buscar juego</span>
+              <input type="search" id="buscadorInput" placeholder="Buscar juego..." autocomplete="off" />
+            </label>
+            <div class="filters" role="group" aria-label="Filtrar juegos">
+              <button type="button" class="filter-chip is-active" data-filtro="todos">Todos</button>
+              <button type="button" class="filter-chip" data-filtro="disponible">Disponibles</button>
+              <button type="button" class="filter-chip" data-filtro="en-desarrollo">En desarrollo</button>
+              <button type="button" class="filter-chip" data-filtro="proximamente">Próximamente</button>
             </div>
           </div>
         </div>
-        <p id="codigoJuego"></p>
-        <div id="marcador"></div>
-        <p id="estadoJuego"></p>
+
+        <div class="category-bar" role="group" aria-label="Filtrar por categoría" id="barraCategorias"></div>
+
+        <div id="gridJuegos" class="game-grid"></div>
+        <p id="sinResultados" class="empty-state" hidden>No encontramos juegos con esa búsqueda 💔</p>
       </section>
 
-      <section class="game-layout">
-        <section id="tablero" aria-label="Tablero de juego"></section>
+      <section id="proximamente" class="roadmap" aria-labelledby="roadmapTitulo">
+        <h2 id="roadmapTitulo">Lo que viene</h2>
+        <p class="section-sub">La plataforma crece con un juego nuevo cada vez. Este es el orden de trabajo.</p>
+        <ol class="roadmap-list" id="roadmapList"></ol>
+      </section>
 
-        <section id="chat" aria-label="Chat del juego">
-          <div id="chatBox"></div>
-          <div id="typingIndicator"></div>
-          <div id="replyPreview">
-            <span id="cancelReplyBtn" onclick="cancelReply()">×</span>
-            <div class="reply-author" id="replyPreviewAuthor"></div>
-            <div class="reply-text" id="replyPreviewText"></div>
-          </div>
-          <div class="chat-input-area">
-            <input type="text" id="mensajeInput" placeholder="Escribe un mensaje..." autocomplete="off" />
-            <button id="adjuntarBtn" type="button">📎</button>
-            <button id="enviarBtn" type="button">Enviar</button>
-            <button id="corazonBtn" type="button">💖</button>
-          </div>
-          <input type="file" id="galeriaInput" accept="image/*" style="display: none;" />
-          <input type="file" id="camaraInput" accept="image/*" capture="environment" style="display: none;" />
-        </section>
+      <section id="como-funciona" class="how-to" aria-labelledby="howToTitulo">
+        <h2 id="howToTitulo">Cómo funciona</h2>
+        <div class="steps">
+          <article class="step">
+            <span class="step-num">1</span>
+            <h3>Elige un juego</h3>
+            <p>Entra al juego que quieras desde el catálogo. Cada uno vive en su propio enlace.</p>
+          </article>
+          <article class="step">
+            <span class="step-num">2</span>
+            <h3>Crea la sala</h3>
+            <p>Escribe tu nombre y crea la partida. Se genera un código privado al instante.</p>
+          </article>
+          <article class="step">
+            <span class="step-num">3</span>
+            <h3>Comparte el código</h3>
+            <p>La otra persona abre el mismo enlace, pega el código y entra a la sala.</p>
+          </article>
+          <article class="step">
+            <span class="step-num">4</span>
+            <h3>Jueguen y chateen</h3>
+            <p>Todo en tiempo real: turnos, mensajes, fotos y reacciones desde el móvil.</p>
+          </article>
+        </div>
       </section>
     </main>
-  </div>
 
-  <div id="modal" class="modal modal-oculto" aria-hidden="true">
-    <div class="modal-contenido">
-      <h2 id="modal-mensaje"></h2>
-      <button id="reiniciarBtn" type="button">Jugar de nuevo</button>
-    </div>
-  </div>
+    <footer class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <img src="icono-app/amor-juegos-192.png" alt="" width="40" height="40" />
+          <p><strong>Juega Juntos |</strong><br />
+          <strong>Diseñado por HarinRC Company</strong></p>
+          <p class="footer-desc">Plataforma de juegos online y multijugador · Compatible con Android, iOS y Windows</p>
+        </div>
 
-  <div id="reactionPopup" aria-live="polite">
-    <span class="reaction-emoji" onclick="addReaction('🥺')">🥺</span>
-    <span class="reaction-emoji" onclick="addReaction('🥰')">🥰</span>
-    <span class="reaction-emoji" onclick="addReaction('😍')">😍</span>
-    <span class="reaction-emoji" onclick="addReaction('❤️')">❤️</span>
-    <span class="reaction-emoji" onclick="addReaction('😄')">😄</span>
-    <span class="reaction-emoji" onclick="addReaction('😢')">😢</span>
-    <span class="reaction-emoji" onclick="addReaction('😡')">😡</span>
-    <span class="reaction-emoji" onclick="addReaction('😐')">😐</span>
-  </div>
+        <div class="footer-col">
+          <h3>Enlaces rápidos</h3>
+          <ul>
+            <li><a href="#catalogo">Explorar juegos</a></li>
+            <li><a href="#proximamente">Próximos lanzamientos</a></li>
+            <li><a href="#como-funciona">Cómo funciona</a></li>
+            <li><a href="juegos/tres-en-raya/index.html">Jugar tres en raya</a></li>
+          </ul>
+        </div>
 
-  <audio id="moveSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"></audio>
-  <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3"></audio>
-  <audio id="messageSound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3"></audio>
+        <div class="footer-col">
+          <h3>Categorías</h3>
+          <ul id="footerCategorias"></ul>
+        </div>
+
+        <div class="footer-col">
+          <h3>Créditos</h3>
+          <p>
+            Diseñado y desarrollado por<br />
+            <a href="https://harinrc.github.io/harinto-rodriguez-cruz-portafolio/" target="_blank" rel="noopener noreferrer">HarinRC Company</a>
+          </p>
+          <p class="footer-desc">Código abierto en GitHub · Desplegado en Netlify</p>
+        </div>
+      </div>
+
+      <p class="footer-note">© <span id="footerAnio"></span> HarinRC Company · Hecho con cariño 💖</p>
+    </footer>
+  </div>
 
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
     }
   </script>
-
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-  <script src="app.js"></script>
+  <script src="datos/juegos.js"></script>
+  <script src="plataforma.js"></script>
 </body>
 </html>

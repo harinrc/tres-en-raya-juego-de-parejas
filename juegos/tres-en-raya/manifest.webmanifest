@@ -1,0 +1,25 @@
+{
+  "name": "Tres en raya con amor",
+  "short_name": "Tres en raya",
+  "description": "Juego de tres en raya con chat, fotos y reacciones para jugar en pareja.",
+  "id": "/juegos/tres-en-raya/",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#fff6f8",
+  "theme_color": "#ff4d88",
+  "icons": [
+    {
+      "src": "../../icono-app/amor-juegos-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "../../icono-app/amor-juegos-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

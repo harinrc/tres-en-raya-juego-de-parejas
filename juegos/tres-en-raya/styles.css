@@ -353,6 +353,26 @@ button.secondary-btn {
   border-color: rgba(255,255,255,0.08);
 }
 
+a.secondary-btn.back-home-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  background: rgba(255,255,255,0.92);
+  color: #5f2948;
+  border: 1px solid rgba(255,77,136,0.16);
+  box-shadow: 0 12px 20px rgba(255,77,136,0.08);
+}
+
+:root[data-theme="dark"] a.secondary-btn.back-home-btn {
+  background: rgba(255,255,255,0.08);
+  color: var(--text-main);
+  border-color: rgba(255,255,255,0.08);
+}
+
 button:hover { transform: translateY(-2px); box-shadow: 0 14px 24px rgba(255,77,136,0.24); }
 button:active { transform: translateY(0); }
 

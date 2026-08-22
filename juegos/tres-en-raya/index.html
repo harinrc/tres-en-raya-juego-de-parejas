@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego de X0 con amor 💖</title>
+  <meta name="theme-color" content="#ff4d88" id="themeColorMeta" />
+  <meta name="description" content="Juego de tres en raya con chat, reacciones y experiencia PWA para jugar en pareja." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="../../icono-app/amor-juegos-192.png" />
+  <link rel="shortcut icon" href="../../icono-app/amor-juegos-192.png" />
+  <link rel="apple-touch-icon" href="../../icono-app/amor-juegos-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <main class="main-container">
+      <header class="hero-card">
+        <div class="hero-actions">
+          <a class="secondary-btn back-home-btn" href="../../index.html">← Inicio</a>
+          <button id="themeToggleBtn" type="button" class="secondary-btn theme-toggle-btn" aria-label="Cambiar tema">🌙 Modo oscuro</button>
+        </div>
+        <p class="eyebrow">Pareja conectada</p>
+        <h1>❤️ Te amo mucho mi amor ❤️</h1>
+        <h2 id="titulo2">Juntos por siempre</h2>
+        <h3 id="titulo3">Juguemos y chatiemos al mismo tiempo mi amor 💌</h3>
+      </header>
+
+      <section id="controls" aria-label="Crear o unirse al juego">
+        <div class="control-grid">
+          <input type="text" id="nombreInput" placeholder="Escribe tu nombre" autocomplete="nickname" />
+          <button id="crearJuegoBtn" type="button">Crear juego</button>
+          <input type="text" id="codigoInput" placeholder="Código de juego" autocomplete="one-time-code" />
+          <button id="unirseBtn" type="button">Unirse</button>
+          <button id="instalarBtn" type="button" class="secondary-btn" hidden>Instalar app</button>
+        </div>
+      </section>
+
+      <section class="status-panel" aria-live="polite">
+        <div id="sessionBanner" class="session-banner" data-state="idle">Listo para jugar</div>
+        <div id="countdownBadge" class="countdown-badge" hidden>3</div>
+        <div class="players-panel" aria-label="Estado de jugadores">
+          <div id="player1Badge" class="player-badge">
+            <span class="player-dot"></span>
+            <div class="player-meta">
+              <strong>Jugador 1</strong>
+              <span>Esperando...</span>
+              <span class="turn-tag">Sin turno</span>
+            </div>
+          </div>
+          <div id="player2Badge" class="player-badge">
+            <span class="player-dot"></span>
+            <div class="player-meta">
+              <strong>Jugador 2</strong>
+              <span>Esperando...</span>
+              <span class="turn-tag">Sin turno</span>
+            </div>
+          </div>
+        </div>
+        <p id="codigoJuego"></p>
+        <div id="marcador"></div>
+        <p id="estadoJuego"></p>
+      </section>
+
+      <section class="game-layout">
+        <section id="tablero" aria-label="Tablero de juego"></section>
+
+        <section id="chat" aria-label="Chat del juego">
+          <div id="chatBox"></div>
+          <div id="typingIndicator"></div>
+          <div id="replyPreview">
+            <span id="cancelReplyBtn" onclick="cancelReply()">×</span>
+            <div class="reply-author" id="replyPreviewAuthor"></div>
+            <div class="reply-text" id="replyPreviewText"></div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="mensajeInput" placeholder="Escribe un mensaje..." autocomplete="off" />
+            <button id="adjuntarBtn" type="button">📎</button>
+            <button id="enviarBtn" type="button">Enviar</button>
+            <button id="corazonBtn" type="button">💖</button>
+          </div>
+          <input type="file" id="galeriaInput" accept="image/*" style="display: none;" />
+          <input type="file" id="camaraInput" accept="image/*" capture="environment" style="display: none;" />
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal modal-oculto" aria-hidden="true">
+    <div class="modal-contenido">
+      <h2 id="modal-mensaje"></h2>
+      <button id="reiniciarBtn" type="button">Jugar de nuevo</button>
+    </div>
+  </div>
+
+  <div id="reactionPopup" aria-live="polite">
+    <span class="reaction-emoji" onclick="addReaction('🥺')">🥺</span>
+    <span class="reaction-emoji" onclick="addReaction('🥰')">🥰</span>
+    <span class="reaction-emoji" onclick="addReaction('😍')">😍</span>
+    <span class="reaction-emoji" onclick="addReaction('❤️')">❤️</span>
+    <span class="reaction-emoji" onclick="addReaction('😄')">😄</span>
+    <span class="reaction-emoji" onclick="addReaction('😢')">😢</span>
+    <span class="reaction-emoji" onclick="addReaction('😡')">😡</span>
+    <span class="reaction-emoji" onclick="addReaction('😐')">😐</span>
+  </div>
+
+  <audio id="moveSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"></audio>
+  <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3"></audio>
+  <audio id="messageSound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3"></audio>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
+    }
+  </script>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

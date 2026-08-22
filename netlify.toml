@@ -1,0 +1,36 @@
+[build]
+  publish = "."
+
+[[redirects]]
+  from = "/tres-en-raya"
+  to = "/juegos/tres-en-raya/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/juegos/tres-en-raya"
+  to = "/juegos/tres-en-raya/index.html"
+  status = 200
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=()"
+
+# El service worker nunca debe quedarse cacheado o los usuarios no verán juegos nuevos.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+[[headers]]
+  for = "/datos/juegos.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
