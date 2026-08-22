@@ -599,6 +599,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   border-radius: 18px;
   box-shadow: 0 10px 20px rgba(0,0,0,0.18);
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  max-width: calc(100vw - 20px);
   padding: 6px;
   gap: 6px;
   z-index: 1001;
@@ -607,9 +610,22 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
   pointer-events: none;
 }
 
+:root[data-theme="dark"] #reactionPopup {
+  background: rgba(40,32,68,0.98);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.5);
+}
+
 #reactionPopup.visible { transform: scale(1); opacity: 1; pointer-events: all; }
-.reaction-emoji { cursor: pointer; font-size: 1.35rem; transition: transform 0.12s ease; }
-.reaction-emoji:hover { transform: scale(1.2); }
+.reaction-emoji {
+  cursor: pointer;
+  font-size: 1.35rem;
+  padding: 4px 6px;
+  line-height: 1;
+  border-radius: 10px;
+  transition: transform 0.12s ease;
+}
+.reaction-emoji:hover { transform: scale(1.2); background: rgba(123,92,255,0.12); }
+.reaction-emoji:active { transform: scale(0.92); }
 
 #replyPreview { background: rgba(255,255,255,0.8); border-radius: 12px; padding: 8px; margin: 0 2px; display: none; }
 :root[data-theme="dark"] #replyPreview { background: rgba(255,255,255,0.08); }
@@ -673,4 +689,73 @@ button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* ---- Adaptación a pantallas pequeñas (hasta 320 px) ---- */
+.game-layout > * { min-width: 0; }
+.main-container { max-width: 100%; }
+
+.hero-actions { flex-wrap: wrap; }
+
+#marcador,
+#estadoJuego,
+#codigoJuego,
+.session-banner,
+.letras-falladas,
+.pista-texto {
+  overflow-wrap: anywhere;
+}
+
+.mensaje {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-width: min(86%, 100%);
+  -webkit-touch-callout: none;
+}
+
+.reply-text { white-space: normal; overflow-wrap: anywhere; }
+
+.chat-input-area { flex-wrap: wrap; }
+
+#mensajeInput {
+  flex: 1 1 120px;
+  min-width: 0;
+  text-align: left;
+  padding-inline: 0.85rem;
+}
+
+.player-meta { min-width: 0; }
+.player-meta strong,
+.player-meta span { overflow-wrap: anywhere; }
+
+.play-top { row-gap: 0.4rem; }
+.palabra-display { max-width: 100%; }
+
+@media (max-width: 400px) {
+  :root { font-size: 14.5px; }
+  .page-shell { padding: 0.5rem; }
+  .hero-card { padding: 0.85rem; }
+  #controls, .board-area { padding: 0.75rem; }
+  input, select, button { padding: 0.65rem 0.75rem; font-size: 0.95rem; }
+  .teclado { grid-template-columns: repeat(auto-fit, minmax(1.7rem, 1fr)); gap: 0.28rem; }
+  .tecla { padding: 0.5rem 0; font-size: 0.88rem; border-radius: 10px; }
+  .gallows { width: min(100%, 190px); }
+  .letra-slot { width: clamp(1.25rem, 7vw, 1.8rem); height: clamp(1.8rem, 9vw, 2.4rem); font-size: clamp(0.95rem, 5vw, 1.35rem); border-bottom-width: 3px; }
+  .palabra-display { gap: 0.45rem 0.3rem; }
+  .pista-row button { font-size: 0.82rem; padding: 0.45rem 0.7rem; }
+  #enviarBtn { flex: 1 1 auto; }
+  .modal-contenido { width: min(94vw, 320px); }
+}
+
+@media (max-width: 330px) {
+  h1 { font-size: 1.8rem; }
+  h2 { font-size: 1rem; }
+  h3 { font-size: 0.88rem; }
+  .hero-actions { justify-content: center; }
+  .categoria-badge, .dificultad-badge { font-size: 0.72rem; padding: 0.3rem 0.6rem; }
+  .lives { font-size: 0.95rem; }
+  .teclado { grid-template-columns: repeat(7, 1fr); }
+  #chatBox { min-height: 200px; }
+  .setup-actions { flex-direction: column; width: 100%; }
+  .setup-actions button { width: 100%; }
 }

@@ -79,6 +79,8 @@ const dom = {
   replyPreviewText: document.getElementById("replyPreviewText"),
   reactionPopup: document.getElementById("reactionPopup"),
   adjuntarBtn: document.getElementById("adjuntarBtn"),
+  piropoBtn: document.getElementById("piropoBtn"),
+  titulo3: document.getElementById("titulo3"),
   galeriaInput: document.getElementById("galeriaInput"),
   camaraInput: document.getElementById("camaraInput")
 };
@@ -170,6 +172,13 @@ function prepararSesion(slot, nombre, codigo) {
   localStorage.setItem(STORAGE_KEYS.gameCode, codigo);
   dom.nombreInput.value = nombre;
   dom.codigoInput.value = codigo;
+}
+
+// El chat pertenece a cada sala: al cambiar de código se vacía y se recarga desde la nueva.
+function limpiarChat() {
+  dom.chatBox.replaceChildren();
+  dom.typingIndicator.textContent = "";
+  cancelReply();
 }
 
 function esPresenciaActiva(jugador) {
@@ -281,7 +290,7 @@ function crearCorazones(num) {
     const heart = document.createElement("div");
     heart.className = "corazon";
     heart.textContent = "❤️";
-    heart.style.left = `${Math.random() * 100}vw`;
+    heart.style.left = `${Math.random() * 92}vw`;
     heart.style.fontSize = `${12 + Math.random() * 18}px`;
     heart.style.animationDuration = `${6 + Math.random() * 8}s`;
     heart.style.animationDelay = `${Math.random() * 4}s`;
@@ -289,11 +298,100 @@ function crearCorazones(num) {
   }
 }
 
+const FRASES = {
+  miTurno: [
+    "💖 Es tu turno, {nombre}... sorpréndeme",
+    "💞 Te toca, {nombre}. Piensa con el corazón",
+    "🥰 Tu turno, {nombre}. Yo ya gané tenerte",
+    "💌 Mueve, {nombre}, que te estoy mirando",
+    "✨ Turno de {nombre}: haz tu magia"
+  ],
+  suTurno: [
+    "💕 {nombre} está pensando su jugada...",
+    "⏳ Espera un poquito, {nombre} está decidiendo",
+    "💝 Turno de {nombre}. Aprovecha para mandarle un mensajito",
+    "💟 {nombre} tiene el turno... y tu corazón",
+    "🌹 Le toca a {nombre}, ten paciencia mi amor"
+  ],
+  gane: [
+    "🎉 ¡Ganaste, {nombre}! Pero el premio mayor ya lo tienes 💝",
+    "🏆 ¡Victoria para {nombre}! Cobra tu beso 😘",
+    "💖 ¡{nombre} ganó! Que empiece la revancha del amor",
+    "⭐ ¡Bien jugado, {nombre}! Contigo siempre gano"
+  ],
+  perdi: [
+    "😍 ¡Ganó {nombre}! Te dejo ganar porque te amo 😜",
+    "💘 {nombre} se llevó esta ronda... y mi corazón",
+    "👏 ¡Felicidades {nombre}! Ahora la revancha",
+    "🥺 Ganó {nombre}, pero yo gano cada día contigo"
+  ],
+  empate: [
+    "💑 ¡Empate! Estamos hechos el uno para el otro",
+    "💞 Empate perfecto, igual de buenos, igual de enamorados",
+    "🤝 Nadie ganó... o ganamos los dos 💕"
+  ],
+  esperando: [
+    "Esperando que se una tu amorcito... 🥰",
+    "Comparte el código con tu persona favorita 💌",
+    "Ya casi... invita a tu amor a jugar 💖"
+  ],
+  encabezado: [
+    "Juguemos y chateemos al mismo tiempo mi amor 💌",
+    "Cada partida contigo es mi rato favorito 💞",
+    "Gane quien gane, aquí los dos ganamos 💕",
+    "Tres en raya, mil razones para quererte 🌹",
+    "Un tablero pequeño para un amor enorme 💝",
+    "Juega bonito... como me quieres tú 🥰",
+    "Que este juego nos junte aunque estemos lejos 💫"
+  ],
+  piropos: [
+    "Si fueras una casilla, serías la del centro: siempre la más importante 💖",
+    "Contigo hasta perder se siente como ganar 🥰",
+    "Tienes tres en raya en mi corazón ❤️",
+    "Mi jugada favorita es tenerte cerca 💝",
+    "Cada vez que juegas, me enamoro otra vez 😍",
+    "Te dejo ganar solo para ver tu sonrisa 😘",
+    "Eres mi partida infinita, nunca quiero que acabe 💕",
+    "No necesito estrategia, ya te tengo a ti 🌹",
+    "Si el amor fuera un tablero, tú serías todas las líneas 💫"
+  ]
+};
+
+function frase(grupo, nombre = "") {
+  const lista = FRASES[grupo];
+  const elegida = lista[Math.floor(Math.random() * lista.length)];
+  return elegida.replace("{nombre}", nombre);
+}
+
+function rotarEncabezado() {
+  dom.titulo3.classList.remove("frase-cambio");
+  void dom.titulo3.offsetWidth;
+  dom.titulo3.textContent = frase("encabezado");
+  dom.titulo3.classList.add("frase-cambio");
+}
+
+setInterval(rotarEncabezado, 18000);
+
+// Celebración al terminar una ronda.
+function lluviaDeAmor() {
+  const emojis = ["❤️", "💖", "💝", "😘", "💞", "🌹"];
+  for (let i = 0; i < 26; i++) {
+    const pieza = document.createElement("div");
+    pieza.className = "amor-lluvia";
+    pieza.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+    pieza.style.left = `${Math.random() * 92}vw`;
+    pieza.style.fontSize = `${18 + Math.random() * 20}px`;
+    pieza.style.animationDelay = `${Math.random() * 0.7}s`;
+    document.body.appendChild(pieza);
+    setTimeout(() => pieza.remove(), 3400);
+  }
+}
+
 function actualizarEstadoTurno() {
   if (!estadoJuegoActual || !estadoJuegoActual.jugador1 || !estadoJuegoActual.jugador2 || !estadoJuegoActual.turno) return;
   const nombreTurno = estadoJuegoActual[estadoJuegoActual.turno]?.nombre;
   if (!nombreTurno) return;
-  mostrarEstado(estadoJuegoActual.turno === jugadorId ? `💖 ¡Es tu turno, ${nombreTurno}!` : `💕 Turno de ${nombreTurno}...`);
+  mostrarEstado(frase(estadoJuegoActual.turno === jugadorId ? "miTurno" : "suTurno", nombreTurno));
 }
 
 function estaEnMiSesion() {
@@ -386,14 +484,15 @@ function resaltarGanador(indices, remover) {
 function mostrarResultado(ganador) {
   let mensaje = "";
   if (ganador === "empate") {
-    mensaje = "¡Fue un empate, amores! 💑";
+    mensaje = frase("empate");
   } else {
     const nombreGanador = estadoJuegoActual[ganador]?.nombre || "jugador";
-    mensaje = ganador === jugadorId ? `🎉 ¡Ganaste, ${nombreGanador}! ¡Te amo! 🎉` : `¡Ganó ${nombreGanador}! ¡Felicidades mi amor! 😍`;
+    mensaje = ganador === jugadorId ? frase("gane", nombreGanador) : frase("perdi", nombreGanador);
   }
   dom.modalMensaje.textContent = mensaje;
   dom.modal.classList.remove("modal-oculto");
-  mostrarEstado("Juego terminado.");
+  mostrarEstado("Ronda terminada 💝");
+  lluviaDeAmor();
 }
 
 function ocultarResultado() {
@@ -427,12 +526,12 @@ function escucharJuego() {
     actualizarTypingIndicator();
     if (state.estado === "finalizado") {
       limpiarCountdown();
-      setSessionBanner("Partida finalizada. Puedes reiniciar cuando quieras.", "success");
+      setSessionBanner("Ronda terminada. ¿Jugamos otra, mi amor? 💝", "success");
       mostrarResultado(state.ganador);
     } else if (state.estado === "jugando") {
       limpiarCountdown();
       ocultarResultado();
-      setSessionBanner("Partida en curso.", "success");
+      setSessionBanner("Partida en curso 💖", "success");
       actualizarEstadoTurno();
       if (!estadoJuegoActual?.jugador1 || !estadoJuegoActual?.jugador2 || !estadoJuegoActual?.turno) {
         mostrarEstado("Partida en curso...");
@@ -443,12 +542,12 @@ function escucharJuego() {
       iniciarCountdown(inicioEnMs, state.turno || (Math.random() < 0.5 ? "jugador1" : "jugador2"));
     } else if (state.estado === "esperando") {
       limpiarCountdown();
-      setSessionBanner("Esperando a tu rival para empezar.", "idle");
-      mostrarEstado("Esperando que se una tu amorcito... 🥰");
+      setSessionBanner("Esperando a tu amor para empezar 💕", "idle");
+      mostrarEstado(frase("esperando"));
     } else {
       limpiarCountdown();
-      setSessionBanner("Sala lista.", "idle");
-      mostrarEstado("Esperando que se una tu amorcito... 🥰");
+      setSessionBanner("Sala lista para los dos 💞", "idle");
+      mostrarEstado(frase("esperando"));
     }
   });
 
@@ -492,12 +591,17 @@ function agregarMensajeAlChat(id, msg) {
   div.appendChild(reactions);
 
   div.addEventListener("click", () => {
+    if (div.dataset.pulsacionLarga === "true") {
+      delete div.dataset.pulsacionLarga;
+      return;
+    }
     if (msg.tipo !== "imagen") handleReplyClick(id, msg);
   });
   div.addEventListener("contextmenu", (e) => {
     e.preventDefault();
     openReactionPopup(id, e);
   });
+  activarPulsacionLarga(div, id);
 
   wrapper.appendChild(div);
   dom.chatBox.appendChild(wrapper);
@@ -543,9 +647,46 @@ function cancelReply() {
 
 function openReactionPopup(id, event) {
   activeReactionMessageId = id;
-  dom.reactionPopup.style.left = `${event.clientX - dom.reactionPopup.offsetWidth / 2}px`;
-  dom.reactionPopup.style.top = `${event.clientY - dom.reactionPopup.offsetHeight - 10}px`;
-  dom.reactionPopup.classList.add("visible");
+  const popup = dom.reactionPopup;
+  const punto = event.touches?.[0] || event.changedTouches?.[0] || event;
+  const margen = 10;
+
+  popup.classList.add("visible");
+
+  const ancho = popup.offsetWidth;
+  const alto = popup.offsetHeight;
+  const maxX = Math.max(margen, window.innerWidth - ancho - margen);
+  const maxY = Math.max(margen, window.innerHeight - alto - margen);
+
+  const x = Math.min(Math.max((punto.clientX || 0) - ancho / 2, margen), maxX);
+  const arriba = (punto.clientY || 0) - alto - 12;
+  const y = Math.min(Math.max(arriba < margen ? (punto.clientY || 0) + 18 : arriba, margen), maxY);
+
+  popup.style.left = `${x}px`;
+  popup.style.top = `${y}px`;
+}
+
+// Pulsación larga en pantallas táctiles para abrir las reacciones.
+function activarPulsacionLarga(elemento, id) {
+  let temporizador = null;
+
+  const cancelar = () => {
+    clearTimeout(temporizador);
+    temporizador = null;
+  };
+
+  elemento.addEventListener("touchstart", (event) => {
+    const toque = event.touches[0];
+    temporizador = setTimeout(() => {
+      elemento.dataset.pulsacionLarga = "true";
+      openReactionPopup(id, toque);
+      if (navigator.vibrate) navigator.vibrate(15);
+    }, 450);
+  }, { passive: true });
+
+  elemento.addEventListener("touchmove", cancelar, { passive: true });
+  elemento.addEventListener("touchend", cancelar);
+  elemento.addEventListener("touchcancel", cancelar);
 }
 
 function addReaction(emoji) {
@@ -659,6 +800,7 @@ dom.crearJuegoBtn.addEventListener("click", () => {
     return;
   }
   detenerEscuchaJuego();
+  limpiarChat();
   localStorage.setItem(STORAGE_KEYS.playerName, nombre);
   codigoJuego = Math.random().toString(36).substr(2, 5);
   jugadorId = "jugador1";
@@ -689,6 +831,7 @@ dom.unirseBtn.addEventListener("click", () => {
   codigoJuego = document.getElementById("codigoInput").value.trim();
   if (!codigoJuego) return;
   detenerEscuchaJuego();
+  limpiarChat();
   gameRef = db.ref(`juegos/${codigoJuego}`);
   localStorage.setItem(STORAGE_KEYS.playerName, nombre);
   localStorage.setItem(STORAGE_KEYS.gameCode, codigoJuego);
@@ -750,6 +893,19 @@ dom.enviarBtn.addEventListener("click", () => {
 dom.corazonBtn.addEventListener("click", () => {
   playSound("messageSound");
   gameRef.child("mensajes").push({ autor: jugadorId, texto: "❤️", timestamp: firebase.database.ServerValue.TIMESTAMP });
+});
+
+dom.piropoBtn.addEventListener("click", () => {
+  if (!gameRef || !jugadorId) {
+    setSessionBanner("Primero entra a una sala para mandar piropos 💌", "warning");
+    return;
+  }
+  playSound("messageSound");
+  gameRef.child("mensajes").push({
+    autor: jugadorId,
+    texto: frase("piropos"),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  });
 });
 
 dom.adjuntarBtn.addEventListener("click", abrirSelectorFoto);
@@ -825,6 +981,10 @@ window.addEventListener("online", () => {
 document.body.addEventListener("click", (e) => {
   if (!dom.reactionPopup.contains(e.target)) dom.reactionPopup.classList.remove("visible");
 });
+
+const cerrarReacciones = () => dom.reactionPopup.classList.remove("visible");
+window.addEventListener("scroll", cerrarReacciones, true);
+window.addEventListener("resize", cerrarReacciones);
 
 if (!navigator.onLine) {
   setSessionBanner("Sin conexión. La app sigue abierta y se reconecta sola.", "warning");

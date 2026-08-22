@@ -17,6 +17,7 @@ const INTENTOS_BASE = 6;
 const PRESENCE_HEARTBEAT_MS = 10000;
 const PRESENCE_STALE_MS = 45000;
 const ABECEDARIO = "abcdefghijklmnñopqrstuvwxyz".split("");
+const CATEGORIA_AZAR = "__azar__";
 // Las salas viven bajo "juegos/" porque es la rama habilitada en las reglas de Firebase.
 const RUTA_SALA = (codigo) => `juegos/ahorcado-${codigo}`;
 
@@ -39,6 +40,9 @@ let currentReplyingTo = null;
 let activeReactionMessageId = null;
 let deferredInstallPrompt = null;
 let ultimoEstadoRenderizado = null;
+let categoriaSugerida = null;
+let palabraSugerida = "";
+const palabrasYaSugeridas = new Set();
 
 function getOrCreateClientId() {
   const storedId = localStorage.getItem(STORAGE_KEYS.clientId);
@@ -133,7 +137,7 @@ function crearLetrasFlotantes(cantidad) {
     const letra = document.createElement("div");
     letra.className = "letra-flotante";
     letra.textContent = ABECEDARIO[Math.floor(Math.random() * ABECEDARIO.length)].toUpperCase();
-    letra.style.left = `${Math.random() * 100}vw`;
+    letra.style.left = `${Math.random() * 92}vw`;
     letra.style.fontSize = `${14 + Math.random() * 22}px`;
     letra.style.animationDuration = `${9 + Math.random() * 9}s`;
     letra.style.animationDelay = `${Math.random() * 6}s`;
@@ -259,6 +263,13 @@ function prepararSesion(slot, nombre, codigo) {
   localStorage.setItem(STORAGE_KEYS.gameCode, codigo);
   dom.nombreInput.value = nombre;
   dom.codigoInput.value = codigo;
+}
+
+// El chat es de cada sala: al cambiar de código se vacía y vuelve a cargarse desde la nueva sala.
+function limpiarChat() {
+  dom.chatBox.replaceChildren();
+  dom.typingIndicator.textContent = "";
+  cancelReply();
 }
 
 function actualizarIndicadoresJugadores() {
@@ -411,7 +422,8 @@ function renderPistas() {
   const letrasPendientes = letrasUnicas(estadoJuegoActual?.palabra).filter(
     (letra) => !letrasProbadas().includes(letra)
   );
-  dom.revelarLetraBtn.hidden = !jugando || !soyAdivinador() || letrasPendientes.length <= 1;
+  const comodinUsado = Boolean(estadoJuegoActual?.letraRevelada);
+  dom.revelarLetraBtn.hidden = !jugando || !soyAdivinador() || comodinUsado || letrasPendientes.length <= 1;
   dom.revelarLetraBtn.disabled = (estadoJuegoActual?.errores || 0) >= intentosDeRonda() - 1;
 }
 
@@ -542,6 +554,7 @@ function intentarLetra(letra) {
 
 function revelarLetraAlAzar() {
   if (!gameRef || estadoJuegoActual?.estado !== "jugando" || !soyAdivinador()) return;
+  if (estadoJuegoActual?.letraRevelada) return;
 
   const pendientes = letrasUnicas(estadoJuegoActual.palabra).filter(
     (letra) => !letrasProbadas().includes(letra)
@@ -555,9 +568,9 @@ function revelarLetraAlAzar() {
   playSound("moveSound");
 
   if (nuevosErrores >= intentosDeRonda()) {
-    finalizarRonda("escritor", { letras: nuevasLetras, errores: nuevosErrores });
+    finalizarRonda("escritor", { letras: nuevasLetras, errores: nuevosErrores, letraRevelada: true });
   } else {
-    gameRef.update({ letras: nuevasLetras, errores: nuevosErrores });
+    gameRef.update({ letras: nuevasLetras, errores: nuevosErrores, letraRevelada: true });
   }
 }
 
@@ -582,16 +595,19 @@ function enviarPalabraSecreta() {
 
   gameRef.update({
     palabra,
-    categoria: dom.categoriaSelect.value || "Libre",
+    categoria: categoriaSugerida || (dom.categoriaSelect.value === CATEGORIA_AZAR ? "Libre" : dom.categoriaSelect.value),
     pista: dom.pistaInput.value.trim().slice(0, 60),
     pistaRevelada: false,
     letras: null,
     errores: 0,
     maxErrores: calcularIntentos(palabra),
+    letraRevelada: false,
     ganador: null,
     estado: "jugando"
   });
 
+  categoriaSugerida = null;
+  palabraSugerida = "";
   dom.palabraInput.value = "";
   dom.pistaInput.value = "";
   setSessionBanner("Palabra enviada. ¡A ver si la descubre!", "success");
@@ -610,6 +626,7 @@ function nuevaRonda() {
     letras: null,
     errores: 0,
     maxErrores: INTENTOS_BASE,
+    letraRevelada: false,
     ganador: null,
     estado: "eligiendo"
   });
@@ -632,6 +649,7 @@ function estadoInicialSala(nombre) {
     letras: null,
     errores: 0,
     maxErrores: INTENTOS_BASE,
+    letraRevelada: false,
     ganador: null,
     marcador: { jugador1: 0, jugador2: 0 }
   };
@@ -767,12 +785,17 @@ function agregarMensajeAlChat(id, msg) {
   div.appendChild(reactions);
 
   div.addEventListener("click", () => {
+    if (div.dataset.pulsacionLarga === "true") {
+      delete div.dataset.pulsacionLarga;
+      return;
+    }
     if (msg.tipo !== "imagen") handleReplyClick(id, msg);
   });
   div.addEventListener("contextmenu", (event) => {
     event.preventDefault();
     openReactionPopup(id, event);
   });
+  activarPulsacionLarga(div, id);
 
   wrapper.appendChild(div);
   dom.chatBox.appendChild(wrapper);
@@ -828,9 +851,46 @@ function cancelReply() {
 
 function openReactionPopup(id, event) {
   activeReactionMessageId = id;
-  dom.reactionPopup.style.left = `${event.clientX - dom.reactionPopup.offsetWidth / 2}px`;
-  dom.reactionPopup.style.top = `${event.clientY - dom.reactionPopup.offsetHeight - 10}px`;
-  dom.reactionPopup.classList.add("visible");
+  const popup = dom.reactionPopup;
+  const punto = event.touches?.[0] || event.changedTouches?.[0] || event;
+  const margen = 10;
+
+  popup.classList.add("visible");
+
+  const ancho = popup.offsetWidth;
+  const alto = popup.offsetHeight;
+  const maxX = Math.max(margen, window.innerWidth - ancho - margen);
+  const maxY = Math.max(margen, window.innerHeight - alto - margen);
+
+  const x = Math.min(Math.max((punto.clientX || 0) - ancho / 2, margen), maxX);
+  const arriba = (punto.clientY || 0) - alto - 12;
+  const y = Math.min(Math.max(arriba < margen ? (punto.clientY || 0) + 18 : arriba, margen), maxY);
+
+  popup.style.left = `${x}px`;
+  popup.style.top = `${y}px`;
+}
+
+// Pulsación larga en pantallas táctiles para abrir las reacciones.
+function activarPulsacionLarga(elemento, id) {
+  let temporizador = null;
+
+  const cancelar = () => {
+    clearTimeout(temporizador);
+    temporizador = null;
+  };
+
+  elemento.addEventListener("touchstart", (event) => {
+    const toque = event.touches[0];
+    temporizador = setTimeout(() => {
+      elemento.dataset.pulsacionLarga = "true";
+      openReactionPopup(id, toque);
+      if (navigator.vibrate) navigator.vibrate(15);
+    }, 450);
+  }, { passive: true });
+
+  elemento.addEventListener("touchmove", cancelar, { passive: true });
+  elemento.addEventListener("touchend", cancelar);
+  elemento.addEventListener("touchcancel", cancelar);
 }
 
 function addReaction(emoji) {
@@ -889,20 +949,55 @@ Object.keys(window.CATEGORIAS_AHORCADO || {}).forEach((categoria) => {
   dom.categoriaSelect.appendChild(option);
 });
 
-dom.sugerirBtn.addEventListener("click", () => {
-  const banco = window.CATEGORIAS_AHORCADO?.[dom.categoriaSelect.value] || [];
-  if (!banco.length) {
-    setSessionBanner("Elige otra categoría para recibir sugerencias.", "warning");
-    return;
+const opcionAzar = document.createElement("option");
+opcionAzar.value = CATEGORIA_AZAR;
+opcionAzar.textContent = "🎲 Sorpréndeme";
+dom.categoriaSelect.insertBefore(opcionAzar, dom.categoriaSelect.firstChild);
+dom.categoriaSelect.value = CATEGORIA_AZAR;
+
+function categoriasConPalabras() {
+  return Object.keys(window.CATEGORIAS_AHORCADO || {})
+    .filter((categoria) => (window.CATEGORIAS_AHORCADO[categoria] || []).length > 0);
+}
+
+function sugerirPalabra() {
+  const disponibles = categoriasConPalabras();
+  if (!disponibles.length) return;
+
+  const seleccion = dom.categoriaSelect.value;
+  const categoria = seleccion === CATEGORIA_AZAR || !window.CATEGORIAS_AHORCADO[seleccion]?.length
+    ? disponibles[Math.floor(Math.random() * disponibles.length)]
+    : seleccion;
+
+  const banco = window.CATEGORIAS_AHORCADO[categoria];
+  let candidatas = banco.filter((palabra) => !palabrasYaSugeridas.has(palabra));
+  if (!candidatas.length) {
+    banco.forEach((palabra) => palabrasYaSugeridas.delete(palabra));
+    candidatas = banco;
   }
-  dom.palabraInput.value = banco[Math.floor(Math.random() * banco.length)];
-});
+
+  const elegida = candidatas[Math.floor(Math.random() * candidatas.length)];
+  palabrasYaSugeridas.add(elegida);
+  categoriaSugerida = categoria;
+  palabraSugerida = elegida;
+
+  dom.palabraInput.value = elegida;
+  dom.palabraInput.dispatchEvent(new Event("input"));
+  setSessionBanner(`Sugerencia de la categoría ${categoria}.`, "idle");
+}
+
+dom.sugerirBtn.addEventListener("click", sugerirPalabra);
 
 dom.empezarRondaBtn.addEventListener("click", enviarPalabraSecreta);
 dom.palabraInput.addEventListener("input", () => {
-  const intentos = calcularIntentos(dom.palabraInput.value.trim());
+  const valor = dom.palabraInput.value.trim();
+  const intentos = calcularIntentos(valor);
   dom.intentosPreview.textContent = `Intentos para tu rival: ${intentos} (${etiquetaDificultad(intentos).toLowerCase()})`;
+  // Si el jugador escribe su propia palabra, la categoría sugerida deja de aplicar.
+  if (valor.toLowerCase() !== palabraSugerida) categoriaSugerida = null;
 });
+
+dom.categoriaSelect.addEventListener("change", () => { categoriaSugerida = null; });
 dom.palabraInput.addEventListener("keypress", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
@@ -931,6 +1026,7 @@ dom.crearJuegoBtn.addEventListener("click", () => {
   }
 
   detenerEscuchaJuego();
+  limpiarChat();
   codigoJuego = Math.random().toString(36).slice(2, 7);
   jugadorId = "jugador1";
   gameRef = db.ref(RUTA_SALA(codigoJuego));
@@ -957,6 +1053,7 @@ dom.unirseBtn.addEventListener("click", () => {
   }
 
   detenerEscuchaJuego();
+  limpiarChat();
   codigoJuego = codigo;
   gameRef = db.ref(RUTA_SALA(codigo));
 
@@ -1053,6 +1150,10 @@ dom.reactionPopup.querySelectorAll(".reaction-emoji").forEach((emoji) => {
 document.body.addEventListener("click", (event) => {
   if (!dom.reactionPopup.contains(event.target)) dom.reactionPopup.classList.remove("visible");
 });
+
+const cerrarReacciones = () => dom.reactionPopup.classList.remove("visible");
+window.addEventListener("scroll", cerrarReacciones, true);
+window.addEventListener("resize", cerrarReacciones);
 
 dom.themeToggleBtn.addEventListener("click", () => {
   aplicarTema(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
