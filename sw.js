@@ -1,4 +1,4 @@
-const CACHE_NAME = "amor-juegos-cache-v5";
+const CACHE_NAME = "amor-juegos-cache-v6";
 const ASSETS = [
   "./",
   "./index.html",
@@ -10,6 +10,11 @@ const ASSETS = [
   "./juegos/tres-en-raya/styles.css",
   "./juegos/tres-en-raya/app.js",
   "./juegos/tres-en-raya/manifest.webmanifest",
+  "./juegos/ahorcado/index.html",
+  "./juegos/ahorcado/styles.css",
+  "./juegos/ahorcado/app.js",
+  "./juegos/ahorcado/palabras.js",
+  "./juegos/ahorcado/manifest.webmanifest",
   "./icono-app/amor-juegos-192.png",
   "./icono-app/amor-juegos-512.png"
 ];

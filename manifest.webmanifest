@@ -32,6 +32,14 @@
       "icons": [
         { "src": "icono-app/amor-juegos-192.png", "sizes": "192x192", "type": "image/png" }
       ]
+    },
+    {
+      "name": "Ahorcado",
+      "short_name": "Ahorcado",
+      "url": "./juegos/ahorcado/index.html",
+      "icons": [
+        { "src": "icono-app/amor-juegos-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
     }
   ]
 }

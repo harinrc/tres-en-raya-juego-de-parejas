@@ -11,6 +11,16 @@
   to = "/juegos/tres-en-raya/index.html"
   status = 200
 
+[[redirects]]
+  from = "/ahorcado"
+  to = "/juegos/ahorcado/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/juegos/ahorcado"
+  to = "/juegos/ahorcado/index.html"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]

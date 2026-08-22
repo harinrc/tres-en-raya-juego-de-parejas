@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ahorcado · Juega Juntos</title>
+  <meta name="theme-color" content="#7b5cff" id="themeColorMeta" />
+  <meta name="description" content="Ahorcado multijugador en tiempo real: uno escribe la palabra secreta y el otro adivina letra por letra, con pistas, categorías y chat." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="../../icono-app/amor-juegos-192.png" />
+  <link rel="shortcut icon" href="../../icono-app/amor-juegos-192.png" />
+  <link rel="apple-touch-icon" href="../../icono-app/amor-juegos-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <main class="main-container">
+      <header class="hero-card">
+        <div class="hero-actions">
+          <a class="secondary-btn back-home-btn" href="../../index.html">← Inicio</a>
+          <button id="themeToggleBtn" type="button" class="secondary-btn theme-toggle-btn" aria-label="Cambiar tema">🌙 Modo oscuro</button>
+        </div>
+        <p class="eyebrow">Palabras y turnos</p>
+        <h1>🔤 Ahorcado</h1>
+        <h2>Uno esconde la palabra, el otro la descubre</h2>
+        <h3>Con pistas, categorías temáticas y chat en vivo</h3>
+      </header>
+
+      <section id="controls" aria-label="Crear o unirse al juego">
+        <div class="control-grid">
+          <input type="text" id="nombreInput" placeholder="Escribe tu nombre" autocomplete="nickname" />
+          <button id="crearJuegoBtn" type="button">Crear sala</button>
+          <input type="text" id="codigoInput" placeholder="Código de sala" autocomplete="one-time-code" />
+          <button id="unirseBtn" type="button">Unirse</button>
+          <button id="instalarBtn" type="button" class="secondary-btn" hidden>Instalar app</button>
+        </div>
+      </section>
+
+      <section class="status-panel" aria-live="polite">
+        <div id="sessionBanner" class="session-banner" data-state="idle">Listo para jugar</div>
+        <div class="players-panel" aria-label="Estado de jugadores">
+          <div id="player1Badge" class="player-badge">
+            <span class="player-dot"></span>
+            <div class="player-meta">
+              <strong>Jugador 1</strong>
+              <span>Esperando...</span>
+              <span class="turn-tag">Sin rol</span>
+            </div>
+          </div>
+          <div id="player2Badge" class="player-badge">
+            <span class="player-dot"></span>
+            <div class="player-meta">
+              <strong>Jugador 2</strong>
+              <span>Esperando...</span>
+              <span class="turn-tag">Sin rol</span>
+            </div>
+          </div>
+        </div>
+        <p id="codigoJuego"></p>
+        <div id="marcador"></div>
+        <p id="estadoJuego"></p>
+      </section>
+
+      <section class="game-layout">
+        <section class="board-area" aria-label="Tablero del ahorcado">
+          <!-- Panel de quien escribe la palabra -->
+          <div id="setupPanel" class="setup-panel" hidden>
+            <h3>Tu turno de esconder la palabra 🤫</h3>
+            <label class="field">
+              <span>Categoría</span>
+              <select id="categoriaSelect"></select>
+            </label>
+            <label class="field">
+              <span>Palabra o frase secreta</span>
+              <input type="text" id="palabraInput" maxlength="40" placeholder="Ej: mariposa" autocomplete="off" />
+            </label>
+            <label class="field">
+              <span>Pista (opcional)</span>
+              <input type="text" id="pistaInput" maxlength="60" placeholder="Ej: tiene alas de colores" autocomplete="off" />
+            </label>
+            <div class="setup-actions">
+              <button id="sugerirBtn" type="button" class="secondary-btn">🎲 Sugerir palabra</button>
+              <button id="empezarRondaBtn" type="button">Enviar palabra</button>
+            </div>
+            <p class="setup-hint">Se permiten letras, espacios y guiones. Los acentos no cuentan para adivinar.</p>
+          </div>
+
+          <!-- Espera del que adivina -->
+          <div id="waitingPanel" class="waiting-panel" hidden>
+            <div class="thinking-dots"><span></span><span></span><span></span></div>
+            <p id="waitingText">Tu rival está eligiendo la palabra secreta...</p>
+          </div>
+
+          <!-- Zona de juego -->
+          <div id="playPanel" class="play-panel" hidden>
+            <div class="play-top">
+              <span id="categoriaBadge" class="categoria-badge">Categoría</span>
+              <div class="lives" id="vidasBox" aria-label="Intentos restantes"></div>
+            </div>
+
+            <div class="gallows-wrap">
+              <svg class="gallows" viewBox="0 0 200 220" role="img" aria-labelledby="gallowsTitle">
+                <title id="gallowsTitle">Dibujo del ahorcado</title>
+                <line class="parte estructura" x1="20" y1="205" x2="120" y2="205" />
+                <line class="parte estructura" x1="55" y1="205" x2="55" y2="20" />
+                <line class="parte estructura" x1="55" y1="20" x2="140" y2="20" />
+                <line class="parte estructura" x1="140" y1="20" x2="140" y2="45" />
+                <circle class="parte cuerpo-parte" data-parte="1" cx="140" cy="62" r="18" />
+                <line class="parte cuerpo-parte" data-parte="2" x1="140" y1="80" x2="140" y2="140" />
+                <line class="parte cuerpo-parte" data-parte="3" x1="140" y1="95" x2="112" y2="120" />
+                <line class="parte cuerpo-parte" data-parte="4" x1="140" y1="95" x2="168" y2="120" />
+                <line class="parte cuerpo-parte" data-parte="5" x1="140" y1="140" x2="115" y2="180" />
+                <line class="parte cuerpo-parte" data-parte="6" x1="140" y1="140" x2="165" y2="180" />
+              </svg>
+            </div>
+
+            <div id="palabraDisplay" class="palabra-display" aria-live="polite"></div>
+
+            <div class="pista-row">
+              <button id="verPistaBtn" type="button" class="secondary-btn" hidden>💡 Ver pista</button>
+              <button id="revelarLetraBtn" type="button" class="secondary-btn" hidden>🔎 Revelar letra (-1 intento)</button>
+              <p id="pistaTexto" class="pista-texto" hidden></p>
+            </div>
+
+            <div id="teclado" class="teclado" aria-label="Teclado de letras"></div>
+            <p id="letrasFalladas" class="letras-falladas"></p>
+          </div>
+        </section>
+
+        <section id="chat" aria-label="Chat del juego">
+          <div id="chatBox"></div>
+          <div id="typingIndicator"></div>
+          <div id="replyPreview">
+            <span id="cancelReplyBtn">×</span>
+            <div class="reply-author" id="replyPreviewAuthor"></div>
+            <div class="reply-text" id="replyPreviewText"></div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="mensajeInput" placeholder="Escribe un mensaje..." autocomplete="off" />
+            <button id="adjuntarBtn" type="button">📎</button>
+            <button id="enviarBtn" type="button">Enviar</button>
+            <button id="corazonBtn" type="button">✨</button>
+          </div>
+          <input type="file" id="galeriaInput" accept="image/*" style="display: none;" />
+          <input type="file" id="camaraInput" accept="image/*" capture="environment" style="display: none;" />
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div id="modal" class="modal modal-oculto" aria-hidden="true">
+    <div class="modal-contenido">
+      <h2 id="modal-mensaje"></h2>
+      <p id="modal-palabra" class="modal-palabra"></p>
+      <button id="reiniciarBtn" type="button">Siguiente ronda</button>
+    </div>
+  </div>
+
+  <div id="reactionPopup" aria-live="polite">
+    <span class="reaction-emoji" data-emoji="🥺">🥺</span>
+    <span class="reaction-emoji" data-emoji="🤯">🤯</span>
+    <span class="reaction-emoji" data-emoji="😍">😍</span>
+    <span class="reaction-emoji" data-emoji="🔥">🔥</span>
+    <span class="reaction-emoji" data-emoji="😄">😄</span>
+    <span class="reaction-emoji" data-emoji="😢">😢</span>
+    <span class="reaction-emoji" data-emoji="😡">😡</span>
+    <span class="reaction-emoji" data-emoji="👏">👏</span>
+  </div>
+
+  <audio id="moveSound" src="https://assets.mixkit.co/sfx/preview/mixkit-game-ball-tap-2073.mp3"></audio>
+  <audio id="winSound" src="https://assets.mixkit.co/sfx/preview/mixkit-video-game-win-2016.mp3"></audio>
+  <audio id="failSound" src="https://assets.mixkit.co/sfx/preview/mixkit-wrong-answer-fail-notification-946.mp3"></audio>
+  <audio id="messageSound" src="https://assets.mixkit.co/sfx/preview/mixkit-message-pop-alert-2354.mp3"></audio>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
+    }
+  </script>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+  <script src="palabras.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
