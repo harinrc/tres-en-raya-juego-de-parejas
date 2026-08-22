@@ -1,4 +1,4 @@
-const CACHE_NAME = "amor-juegos-cache-v6";
+const CACHE_NAME = "amor-juegos-cache-v7";
 const ASSETS = [
   "./",
   "./index.html",
@@ -15,8 +15,10 @@ const ASSETS = [
   "./juegos/ahorcado/app.js",
   "./juegos/ahorcado/palabras.js",
   "./juegos/ahorcado/manifest.webmanifest",
-  "./icono-app/amor-juegos-192.png",
-  "./icono-app/amor-juegos-512.png"
+  "./icono-app/juega-juntos-192.png",
+  "./icono-app/juega-juntos-512.png",
+  "./icono-app/juega-juntos-180.png",
+  "./icono-app/juega-juntos-og.jpg"
 ];
 
 self.addEventListener("install", (event) => {

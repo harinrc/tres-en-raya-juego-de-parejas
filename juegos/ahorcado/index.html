@@ -8,10 +8,21 @@
   <meta name="description" content="Ahorcado multijugador en tiempo real: uno escribe la palabra secreta y el otro adivina letra por letra, con pistas, categorías y chat." />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Juega Juntos" />
+  <meta property="og:title" content="Ahorcado · Juega Juntos" />
+  <meta property="og:description" content="Uno escribe la palabra secreta y el otro la adivina letra por letra. Con pistas, categorías temáticas y chat en vivo." />
+  <meta property="og:url" content="https://harinrc-plataforma-de-juegos-online.netlify.app/juegos/ahorcado/" />
+  <meta property="og:image" content="https://harinrc-plataforma-de-juegos-online.netlify.app/icono-app/juega-juntos-og.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://harinrc-plataforma-de-juegos-online.netlify.app/icono-app/juega-juntos-og.jpg" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="icon" type="image/png" sizes="192x192" href="../../icono-app/amor-juegos-192.png" />
-  <link rel="shortcut icon" href="../../icono-app/amor-juegos-192.png" />
-  <link rel="apple-touch-icon" href="../../icono-app/amor-juegos-192.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="../../icono-app/juega-juntos-192.png" />
+  <link rel="shortcut icon" href="../../icono-app/juega-juntos-192.png" />
+  <link rel="apple-touch-icon" href="../../icono-app/juega-juntos-180.png" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -85,6 +96,7 @@
               <button id="empezarRondaBtn" type="button">Enviar palabra</button>
             </div>
             <p class="setup-hint">Se permiten letras, espacios y guiones. Los acentos no cuentan para adivinar.</p>
+            <p id="intentosPreview" class="setup-hint intentos-preview">Intentos para tu rival: 6 (normal)</p>
           </div>
 
           <!-- Espera del que adivina -->
@@ -97,6 +109,7 @@
           <div id="playPanel" class="play-panel" hidden>
             <div class="play-top">
               <span id="categoriaBadge" class="categoria-badge">Categoría</span>
+              <span id="dificultadBadge" class="dificultad-badge">Normal · 6 intentos</span>
               <div class="lives" id="vidasBox" aria-label="Intentos restantes"></div>
             </div>
 
@@ -113,6 +126,10 @@
                 <line class="parte cuerpo-parte" data-parte="4" x1="140" y1="95" x2="168" y2="120" />
                 <line class="parte cuerpo-parte" data-parte="5" x1="140" y1="140" x2="115" y2="180" />
                 <line class="parte cuerpo-parte" data-parte="6" x1="140" y1="140" x2="165" y2="180" />
+                <circle class="parte cuerpo-parte detalle" data-parte="7" cx="109" cy="123" r="5" />
+                <circle class="parte cuerpo-parte detalle" data-parte="8" cx="171" cy="123" r="5" />
+                <line class="parte cuerpo-parte detalle" data-parte="9" x1="115" y1="180" x2="104" y2="186" />
+                <line class="parte cuerpo-parte detalle" data-parte="10" x1="165" y1="180" x2="176" y2="186" />
               </svg>
             </div>
 

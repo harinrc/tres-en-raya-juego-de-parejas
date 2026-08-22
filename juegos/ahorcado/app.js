@@ -12,7 +12,8 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 const storage = firebase.storage();
 
-const MAX_ERRORES = 6;
+const MAX_PARTES = 10;
+const INTENTOS_BASE = 6;
 const PRESENCE_HEARTBEAT_MS = 10000;
 const PRESENCE_STALE_MS = 45000;
 const ABECEDARIO = "abcdefghijklmnñopqrstuvwxyz".split("");
@@ -77,6 +78,8 @@ const dom = {
   waitingText: document.getElementById("waitingText"),
   playPanel: document.getElementById("playPanel"),
   categoriaBadge: document.getElementById("categoriaBadge"),
+  dificultadBadge: document.getElementById("dificultadBadge"),
+  intentosPreview: document.getElementById("intentosPreview"),
   vidasBox: document.getElementById("vidasBox"),
   gallows: document.querySelector(".gallows"),
   palabraDisplay: document.getElementById("palabraDisplay"),
@@ -178,6 +181,27 @@ function esLetra(caracter) {
 
 function letrasUnicas(palabra) {
   return [...new Set(normalizar(palabra).split("").filter(esLetra))];
+}
+
+// Palabras más largas dan más intentos: 6 (normal), 8 (larga) o 10 (muy larga o frase).
+function calcularIntentos(palabra) {
+  const unicas = letrasUnicas(palabra).length;
+  const totalLetras = normalizar(palabra).split("").filter(esLetra).length;
+  const palabras = String(palabra).trim().split(/\s+/).filter(Boolean).length;
+
+  if (palabras > 1 || unicas > 9 || totalLetras > 14) return 10;
+  if (unicas > 6 || totalLetras > 8) return 8;
+  return INTENTOS_BASE;
+}
+
+function etiquetaDificultad(intentos) {
+  if (intentos >= 10) return "Muy larga";
+  if (intentos >= 8) return "Larga";
+  return "Normal";
+}
+
+function intentosDeRonda() {
+  return estadoJuegoActual?.maxErrores || INTENTOS_BASE;
 }
 
 /* ---------------- Estado y roles ---------------- */
@@ -338,7 +362,8 @@ function renderPalabra() {
 }
 
 function renderVidas(errores) {
-  const corazones = Array.from({ length: MAX_ERRORES }, (_, i) => {
+  const total = intentosDeRonda();
+  const corazones = Array.from({ length: total }, (_, i) => {
     const span = document.createElement("span");
     span.textContent = "💜";
     if (i < errores) span.classList.add("perdida");
@@ -347,9 +372,11 @@ function renderVidas(errores) {
   dom.vidasBox.replaceChildren(...corazones);
 }
 
+// Cada fallo dibuja una parte más: 6 intentos = muñeco básico, 8 o 10 añaden manos y pies.
 function renderAhorcado(errores) {
+  const partesVisibles = Math.min(errores, MAX_PARTES);
   dom.gallows.querySelectorAll(".cuerpo-parte").forEach((parte) => {
-    parte.classList.toggle("visible", Number(parte.dataset.parte) <= errores);
+    parte.classList.toggle("visible", Number(parte.dataset.parte) <= partesVisibles);
   });
 }
 
@@ -385,7 +412,7 @@ function renderPistas() {
     (letra) => !letrasProbadas().includes(letra)
   );
   dom.revelarLetraBtn.hidden = !jugando || !soyAdivinador() || letrasPendientes.length <= 1;
-  dom.revelarLetraBtn.disabled = (estadoJuegoActual?.errores || 0) >= MAX_ERRORES - 1;
+  dom.revelarLetraBtn.disabled = (estadoJuegoActual?.errores || 0) >= intentosDeRonda() - 1;
 }
 
 function mostrarPanel(nombre) {
@@ -424,6 +451,7 @@ function renderJuego() {
 
   mostrarPanel("play");
   dom.categoriaBadge.textContent = estadoJuegoActual?.categoria || "Libre";
+  dom.dificultadBadge.textContent = `${etiquetaDificultad(intentosDeRonda())} · ${intentosDeRonda()} intentos`;
   renderPalabra();
   renderVidas(errores);
   renderAhorcado(errores);
@@ -431,7 +459,7 @@ function renderJuego() {
   renderPistas();
 
   if (estado === "jugando") {
-    const restantes = MAX_ERRORES - errores;
+    const restantes = intentosDeRonda() - errores;
     if (soyAdivinador()) {
       mostrarEstado(`Tu turno: elige una letra · te quedan ${restantes} intento${restantes === 1 ? "" : "s"}`);
       setSessionBanner("Partida en curso. ¡Adivina la palabra!", "success");
@@ -494,7 +522,7 @@ function aplicarIntento(letra) {
 
   if (adivinoTodo) {
     finalizarRonda("adivinador", { letras: nuevasLetras, errores: nuevosErrores });
-  } else if (nuevosErrores >= MAX_ERRORES) {
+  } else if (nuevosErrores >= intentosDeRonda()) {
     finalizarRonda("escritor", { letras: nuevasLetras, errores: nuevosErrores });
   } else {
     gameRef.update({ letras: nuevasLetras, errores: nuevosErrores });
@@ -526,7 +554,7 @@ function revelarLetraAlAzar() {
 
   playSound("moveSound");
 
-  if (nuevosErrores >= MAX_ERRORES) {
+  if (nuevosErrores >= intentosDeRonda()) {
     finalizarRonda("escritor", { letras: nuevasLetras, errores: nuevosErrores });
   } else {
     gameRef.update({ letras: nuevasLetras, errores: nuevosErrores });
@@ -559,6 +587,7 @@ function enviarPalabraSecreta() {
     pistaRevelada: false,
     letras: null,
     errores: 0,
+    maxErrores: calcularIntentos(palabra),
     ganador: null,
     estado: "jugando"
   });
@@ -580,6 +609,7 @@ function nuevaRonda() {
     pistaRevelada: false,
     letras: null,
     errores: 0,
+    maxErrores: INTENTOS_BASE,
     ganador: null,
     estado: "eligiendo"
   });
@@ -601,6 +631,7 @@ function estadoInicialSala(nombre) {
     pistaRevelada: false,
     letras: null,
     errores: 0,
+    maxErrores: INTENTOS_BASE,
     ganador: null,
     marcador: { jugador1: 0, jugador2: 0 }
   };
@@ -868,6 +899,10 @@ dom.sugerirBtn.addEventListener("click", () => {
 });
 
 dom.empezarRondaBtn.addEventListener("click", enviarPalabraSecreta);
+dom.palabraInput.addEventListener("input", () => {
+  const intentos = calcularIntentos(dom.palabraInput.value.trim());
+  dom.intentosPreview.textContent = `Intentos para tu rival: ${intentos} (${etiquetaDificultad(intentos).toLowerCase()})`;
+});
 dom.palabraInput.addEventListener("keypress", (event) => {
   if (event.key === "Enter") {
     event.preventDefault();
