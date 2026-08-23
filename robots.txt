@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://harinrc-plataforma-de-juegos-online.netlify.app/sitemap.xml
