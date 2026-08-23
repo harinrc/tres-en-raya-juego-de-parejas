@@ -58,6 +58,20 @@ function getOrCreateClientId() {
 
 const clientId = getOrCreateClientId();
 
+// Alfabeto sin caracteres que se confunden al dictarlos (i, l, o, 0, 1).
+function generarCodigoSala(longitud = 8) {
+  const alfabeto = "abcdefghjkmnpqrstuvwxyz23456789";
+  const valores = new Uint32Array(longitud);
+
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(valores);
+  } else {
+    valores.forEach((_, i) => { valores[i] = Math.floor(Math.random() * 4294967296); });
+  }
+
+  return Array.from(valores, (valor) => alfabeto[valor % alfabeto.length]).join("");
+}
+
 const dom = {
   nombreInput: document.getElementById("nombreInput"),
   codigoInput: document.getElementById("codigoInput"),
@@ -1027,7 +1041,7 @@ dom.crearJuegoBtn.addEventListener("click", () => {
 
   detenerEscuchaJuego();
   limpiarChat();
-  codigoJuego = Math.random().toString(36).slice(2, 7);
+  codigoJuego = generarCodigoSala();
   jugadorId = "jugador1";
   gameRef = db.ref(RUTA_SALA(codigoJuego));
   gameRef.set(estadoInicialSala(nombre));
@@ -1046,7 +1060,7 @@ dom.unirseBtn.addEventListener("click", () => {
     return;
   }
 
-  const codigo = dom.codigoInput.value.trim();
+  const codigo = dom.codigoInput.value.trim().toLowerCase();
   if (!codigo) {
     setSessionBanner("Escribe el código de la sala.", "warning");
     return;

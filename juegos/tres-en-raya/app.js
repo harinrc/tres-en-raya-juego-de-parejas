@@ -50,6 +50,20 @@ function getOrCreateClientId() {
 
 const clientId = getOrCreateClientId();
 
+// Alfabeto sin caracteres que se confunden al dictarlos (i, l, o, 0, 1).
+function generarCodigoSala(longitud = 8) {
+  const alfabeto = "abcdefghjkmnpqrstuvwxyz23456789";
+  const valores = new Uint32Array(longitud);
+
+  if (typeof crypto !== "undefined" && crypto.getRandomValues) {
+    crypto.getRandomValues(valores);
+  } else {
+    valores.forEach((_, i) => { valores[i] = Math.floor(Math.random() * 4294967296); });
+  }
+
+  return Array.from(valores, (valor) => alfabeto[valor % alfabeto.length]).join("");
+}
+
 const dom = {
   tablero: document.getElementById("tablero"),
   estadoJuego: document.getElementById("estadoJuego"),
@@ -802,7 +816,7 @@ dom.crearJuegoBtn.addEventListener("click", () => {
   detenerEscuchaJuego();
   limpiarChat();
   localStorage.setItem(STORAGE_KEYS.playerName, nombre);
-  codigoJuego = Math.random().toString(36).substr(2, 5);
+  codigoJuego = generarCodigoSala();
   jugadorId = "jugador1";
   gameRef = db.ref(`juegos/${codigoJuego}`);
   gameRef.set({
@@ -828,7 +842,7 @@ dom.unirseBtn.addEventListener("click", () => {
     alert("Por favor, escribe tu nombre mi amor ❤️");
     return;
   }
-  codigoJuego = document.getElementById("codigoInput").value.trim();
+  codigoJuego = document.getElementById("codigoInput").value.trim().toLowerCase();
   if (!codigoJuego) return;
   detenerEscuchaJuego();
   limpiarChat();
