@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Memorama · Juega Juntos</title>
+  <meta name="theme-color" content="#2bb3a3" id="themeColorMeta" />
+  <meta name="description" content="Memorama multijuador y de velocidad con parejas, emojis y tablero dinámico para jugar en móvil o escritorio." />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://harinrc-plataforma-de-juegos-online.netlify.app/juegos/memorama/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Juega Juntos" />
+  <meta property="og:title" content="Memorama · Juega Juntos" />
+  <meta property="og:description" content="Encuentra las parejas ocultas y compite por los mejores tiempos en una partida rápida y visual." />
+  <meta property="og:url" content="https://harinrc-plataforma-de-juegos-online.netlify.app/juegos/memorama/" />
+  <meta property="og:image" content="https://harinrc-plataforma-de-juegos-online.netlify.app/icono-app/juega-juntos-og.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:image" content="https://harinrc-plataforma-de-juegos-online.netlify.app/icono-app/juega-juntos-og.jpg" />
+  <link rel="manifest" href="../../manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="../../icono-app/juega-juntos-192.png" />
+  <link rel="shortcut icon" href="../../icono-app/juega-juntos-192.png" />
+  <link rel="apple-touch-icon" href="../../icono-app/juega-juntos-180.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <main class="game-shell">
+      <header class="topbar">
+        <div class="topbar-left">
+          <a class="secondary-btn" href="../../index.html">← Inicio</a>
+          <button id="themeToggleBtn" type="button" class="secondary-btn" aria-label="Cambiar tema">🌙 Modo oscuro</button>
+        </div>
+        <button id="instalarBtn" type="button" class="secondary-btn" hidden>⬇️ Instalar app</button>
+      </header>
+
+      <section class="hero-card">
+        <p class="eyebrow">Memoria y enfoque</p>
+        <h1>🧠 Memorama</h1>
+        <p class="subtitle">Encuentra todas las parejas antes de que se termine el tiempo.</p>
+      </section>
+
+      <section class="controls-panel">
+        <label class="field">
+          <span>Tu nombre</span>
+          <input id="nombreInput" type="text" placeholder="Escribe tu nombre" maxlength="18" autocomplete="nickname" />
+        </label>
+        <label class="field">
+          <span>Dificultad</span>
+          <select id="dificultadSelect">
+            <option value="facil">Fácil · 8 parejas</option>
+            <option value="normal" selected>Normal · 10 parejas</option>
+            <option value="dificil">Difícil · 12 parejas</option>
+          </select>
+        </label>
+        <button id="reiniciarBtn" type="button" class="primary-btn">🔄 Reiniciar</button>
+      </section>
+
+      <section class="status-bar" aria-live="polite">
+        <div class="status-item">
+          <span class="label">Jugador</span>
+          <strong id="jugadorLabel">Invitado</strong>
+        </div>
+        <div class="status-item">
+          <span class="label">Pares</span>
+          <strong id="parejasLabel">0/0</strong>
+        </div>
+        <div class="status-item">
+          <span class="label">Intentos</span>
+          <strong id="intentosLabel">0</strong>
+        </div>
+        <div class="status-item">
+          <span class="label">Tiempo</span>
+          <strong id="tiempoLabel">00:00</strong>
+        </div>
+      </section>
+
+      <section class="game-layout">
+        <div id="tablero" class="tablero" aria-label="Tablero del memorama"></div>
+
+        <aside class="side-panel">
+          <div class="panel-box">
+            <h2>Resultado</h2>
+            <p id="mensajeEstado">Busca las parejas y gana la partida.</p>
+          </div>
+          <div class="panel-box log-box">
+            <h2>Actividad</h2>
+            <ul id="logList">
+              <li>La partida está lista.</li>
+            </ul>
+          </div>
+        </aside>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
+    }
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
