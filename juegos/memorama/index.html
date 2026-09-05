@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Memorama · Juega Juntos</title>
   <meta name="theme-color" content="#2bb3a3" id="themeColorMeta" />
-  <meta name="description" content="Memorama multijuador y de velocidad con parejas, emojis y tablero dinámico para jugar en móvil o escritorio." />
+  <meta name="description" content="Memorama multijugador con salas privadas, chat en vivo, mazos temáticos, fotos propias y modo solo o en pareja." />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://harinrc-plataforma-de-juegos-online.netlify.app/juegos/memorama/" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Juega Juntos" />
   <meta property="og:title" content="Memorama · Juega Juntos" />
-  <meta property="og:description" content="Encuentra las parejas ocultas y compite por los mejores tiempos en una partida rápida y visual." />
+  <meta property="og:description" content="Memorama multijugador con salas privadas, chat, fotos y turnos en tiempo real." />
   <meta property="og:url" content="https://harinrc-plataforma-de-juegos-online.netlify.app/juegos/memorama/" />
   <meta property="og:image" content="https://harinrc-plataforma-de-juegos-online.netlify.app/icono-app/juega-juntos-og.jpg" />
   <meta name="twitter:card" content="summary_large_image" />
@@ -36,14 +36,23 @@
       <section class="hero-card">
         <p class="eyebrow">Memoria y enfoque</p>
         <h1>🧠 Memorama</h1>
-        <p class="subtitle">Encuentra todas las parejas antes de que se termine el tiempo.</p>
+        <p class="subtitle">Juega solo o en pareja, encuentra parejas y compite con el reloj.</p>
       </section>
 
       <section class="controls-panel">
         <label class="field">
           <span>Tu nombre</span>
-          <input id="nombreInput" type="text" placeholder="Escribe tu nombre" maxlength="18" autocomplete="nickname" />
+          <input id="nombreInput" type="text" placeholder="Escribe tu nombre" maxlength="20" autocomplete="nickname" />
         </label>
+
+        <label class="field">
+          <span>Modo</span>
+          <select id="modeSelect">
+            <option value="solo">Solo</option>
+            <option value="multijugador">Multijugador</option>
+          </select>
+        </label>
+
         <label class="field">
           <span>Dificultad</span>
           <select id="dificultadSelect">
@@ -52,7 +61,26 @@
             <option value="dificil">Difícil · 12 parejas</option>
           </select>
         </label>
-        <button id="reiniciarBtn" type="button" class="primary-btn">🔄 Reiniciar</button>
+
+        <label class="field">
+          <span>Mazo</span>
+          <select id="deckThemeSelect">
+            <option value="emoji">Emoji</option>
+            <option value="frutas">Frutas</option>
+            <option value="animales">Animales</option>
+            <option value="paisajes">Paisajes</option>
+          </select>
+        </label>
+
+        <button id="uploadDeckBtn" type="button" class="secondary-btn">📸 Fotos propias</button>
+        <input id="uploadDeckInput" type="file" accept="image/*" multiple hidden />
+        <button id="crearJuegoBtn" type="button" class="primary-btn">Crear sala</button>
+
+        <label class="field codigo-field">
+          <span>Código</span>
+          <input id="codigoInput" type="text" placeholder="Código de sala" autocomplete="one-time-code" />
+        </label>
+        <button id="unirseBtn" type="button" class="secondary-btn">Unirse</button>
       </section>
 
       <section class="status-bar" aria-live="polite">
@@ -74,6 +102,12 @@
         </div>
       </section>
 
+      <section class="info-bar">
+        <div id="sessionBanner" class="session-banner">Listo para iniciar.</div>
+        <div id="codigoJuego" class="codigo-juego">Sin sala</div>
+        <div id="estadoJuego" class="estado-juego">Modo solo</div>
+      </section>
+
       <section class="game-layout">
         <div id="tablero" class="tablero" aria-label="Tablero del memorama"></div>
 
@@ -82,15 +116,39 @@
             <h2>Resultado</h2>
             <p id="mensajeEstado">Busca las parejas y gana la partida.</p>
           </div>
-          <div class="panel-box log-box">
-            <h2>Actividad</h2>
-            <ul id="logList">
-              <li>La partida está lista.</li>
-            </ul>
+
+          <div class="panel-box chat-box">
+            <h2>Chat</h2>
+            <div id="chatBox" class="chat-box-list"></div>
+            <div id="typingIndicator" class="typing-indicator"></div>
+            <div id="replyPreview" class="reply-preview" hidden>
+              <span id="cancelReplyBtn" class="cancel-reply" title="Cancelar respuesta">×</span>
+              <div class="reply-author" id="replyPreviewAuthor"></div>
+              <div class="reply-text" id="replyPreviewText"></div>
+            </div>
+            <div class="chat-input-area">
+              <input type="text" id="mensajeInput" placeholder="Escribe un mensaje..." autocomplete="off" />
+              <button id="adjuntarBtn" type="button" title="Enviar foto">📎</button>
+              <button id="corazonBtn" type="button" title="Mandar un corazón">💖</button>
+              <button id="enviarBtn" type="button">Enviar</button>
+            </div>
+            <input type="file" id="galeriaInput" accept="image/*" hidden />
+            <input type="file" id="camaraInput" accept="image/*" capture="environment" hidden />
           </div>
         </aside>
       </section>
     </main>
+  </div>
+
+  <div id="reactionPopup" class="reaction-popup" aria-live="polite">
+    <span class="reaction-emoji" data-emoji="🥺">🥺</span>
+    <span class="reaction-emoji" data-emoji="😍">😍</span>
+    <span class="reaction-emoji" data-emoji="🔥">🔥</span>
+    <span class="reaction-emoji" data-emoji="💖">💖</span>
+    <span class="reaction-emoji" data-emoji="😄">😄</span>
+    <span class="reaction-emoji" data-emoji="😢">😢</span>
+    <span class="reaction-emoji" data-emoji="👏">👏</span>
+    <span class="reaction-emoji" data-emoji="🤯">🤯</span>
   </div>
 
   <script>
@@ -98,6 +156,10 @@
       window.addEventListener("load", () => navigator.serviceWorker.register("../../sw.js").catch(() => {}));
     }
   </script>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
