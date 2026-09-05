@@ -30,6 +30,7 @@ const dom = {
   themeColorMeta: document.getElementById("themeColorMeta"),
   nombreInput: document.getElementById("nombreInput"),
   codigoInput: document.getElementById("codigoInput"),
+  copiarEnlaceBtn: document.getElementById("copiarEnlaceBtn"),
   modeSelect: document.getElementById("modeSelect"),
   dificultadSelect: document.getElementById("dificultadSelect"),
   deckThemeSelect: document.getElementById("deckThemeSelect"),
@@ -42,7 +43,9 @@ const dom = {
   parejasLabel: document.getElementById("parejasLabel"),
   intentosLabel: document.getElementById("intentosLabel"),
   tiempoLabel: document.getElementById("tiempoLabel"),
+  marcadorLabel: document.getElementById("marcadorLabel"),
   mensajeEstado: document.getElementById("mensajeEstado"),
+  siguienteRondaBtn: document.getElementById("siguienteRondaBtn"),
   sessionBanner: document.getElementById("sessionBanner"),
   codigoJuego: document.getElementById("codigoJuego"),
   estadoJuego: document.getElementById("estadoJuego"),
@@ -71,8 +74,11 @@ const soloState = {
   id: null,
   started: false,
   busy: false,
+  completed: false,
   timerId: null,
-  deckTheme: "emoji"
+  deckTheme: "emoji",
+  roundsWon: 0,
+  roundWinner: null
 };
 
 let clientId = null;
@@ -143,13 +149,29 @@ function shuffle(array) {
 }
 
 function getDeckValues(theme, customList = []) {
+  const pairCount = Math.max(4, (dom.dificultadSelect?.value === "facil" ? 8 : dom.dificultadSelect?.value === "dificil" ? 12 : 10) || 10);
+
   if (customList.length > 0) {
-    return customList.map((item) => ({ value: item, type: "image" }));
+    const source = [...customList];
+    const selected = [];
+    for (let index = 0; index < pairCount; index += 1) {
+      const value = source[index % source.length];
+      selected.push({ value, type: isImageValue(value) ? "image" : "emoji" });
+    }
+    return selected;
   }
 
-  let source = THEMES[theme] || THEMES.emoji;
-  const base = source.slice();
-  return base.map((value) => ({ value, type: "emoji" }));
+  const source = (THEMES[theme] || THEMES.emoji).slice();
+  const selected = [];
+  for (let index = 0; index < pairCount; index += 1) {
+    const value = source[index % source.length];
+    selected.push({ value, type: "emoji" });
+  }
+  return selected;
+}
+
+function isImageValue(value) {
+  return typeof value === "string" && /^(data:image\/|https?:\/\/)/.test(value);
 }
 
 function buildDeck(theme, level = "normal", customList = []) {
@@ -177,7 +199,7 @@ function renderSoloBoard() {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "card" + (card.visible || card.matched ? " revealed" : "") + (card.matched ? " matched" : "");
-    btn.disabled = Boolean(card.visible || card.matched);
+    btn.disabled = Boolean(card.visible || card.matched || soloState.completed);
     btn.setAttribute("aria-label", `Carta ${index + 1}`);
 
     const inner = document.createElement("div");
@@ -215,6 +237,20 @@ function updateStats() {
   dom.intentosLabel.textContent = String(soloState.attempts);
   dom.tiempoLabel.textContent = formatTime(soloState.timer);
   dom.estadoJuego.textContent = dom.modeSelect.value === "solo" ? "Modo solo" : "Modo multijugador";
+  dom.marcadorLabel.textContent = "Modo solo";
+  dom.siguienteRondaBtn.hidden = true;
+}
+
+function finishSoloRound() {
+  if (soloState.completed) return;
+  soloState.completed = true;
+  soloState.roundWinner = "yo";
+  soloState.roundsWon += 1;
+  stopSoloTimer();
+  dom.mensajeEstado.textContent = `¡Tablero completado! Lo resolviste en ${soloState.attempts} intentos y ${formatTime(soloState.timer)}.`;
+  setSessionBanner("Ronda terminada: has ganado esta partida.");
+  renderSoloBoard();
+  updateStats();
 }
 
 function startSoloTimer() {
@@ -234,6 +270,8 @@ function stopSoloTimer() {
 
 function resetSoloGame() {
   const level = dom.dificultadSelect.value;
+  soloState.completed = false;
+  soloState.roundWinner = null;
   soloState.board = buildDeck(dom.deckThemeSelect.value, level, customDeck);
   soloState.selected = [];
   soloState.matched = 0;
@@ -283,9 +321,7 @@ function handleSoloTurn(index) {
     updateStats();
 
     if (soloState.matched >= (soloState.board.length / 2)) {
-      stopSoloTimer();
-      dom.mensajeEstado.textContent = `¡Completaste el tablero en ${soloState.attempts} intentos y ${formatTime(soloState.timer)}!`;
-      setSessionBanner("Partida terminada.");
+      finishSoloRound();
     }
     return;
   }
@@ -481,11 +517,15 @@ function renderRoom(room) {
   currentRoom = room;
   const jugadores = room.jugadores || {};
   const totalPairs = (room.cartas || []).filter((card) => card.matched).length / 2;
+  const playerScore = Number(jugadores[playerSlot]?.score || 0);
+  const totalBoardPairs = Math.max(1, (room.cartas || []).length / 2);
 
-  dom.parejasLabel.textContent = `${Math.min(totalPairs, (room.cartas || []).length / 2)}/${(room.cartas || []).length / 2}`;
+  dom.parejasLabel.textContent = `${Math.min(totalPairs, totalBoardPairs)}/${totalBoardPairs}`;
   dom.intentosLabel.textContent = String(room.intentos || 0);
   dom.tiempoLabel.textContent = formatTime(room.timer || 0);
-  dom.estadoJuego.textContent = room.estado === "finalizado" ? `Ganador: ${room.ganador || "-"}` : `Turno: ${room.turno || "jugador1"}`;
+  dom.estadoJuego.textContent = room.estado === "finalizado"
+    ? `Ganador: ${room.ganador || "-"} · Ronda ${room.ronda || 1}`
+    : `Turno: ${room.turno || "jugador1"} · Ronda ${room.ronda || 1}`;
 
   const cards = room.cartas || [];
   dom.tablero.innerHTML = "";
@@ -528,10 +568,65 @@ function renderRoom(room) {
 
   const nombre1 = jugadores.jugador1?.nombre || "Jugador 1";
   const nombre2 = jugadores.jugador2?.nombre || "Jugador 2";
+  const winnerText = room.ganadorRonda ? (jugadores[room.ganadorRonda]?.nombre || room.ganadorRonda) : "Empate";
+  const marcador = room.marcador || {
+    jugador1: jugadores.jugador1?.rondasGanadas || 0,
+    jugador2: jugadores.jugador2?.rondasGanadas || 0
+  };
+  dom.marcadorLabel.textContent = `${nombre1} ${marcador.jugador1 || 0} · ${nombre2} ${marcador.jugador2 || 0}`;
+  dom.siguienteRondaBtn.hidden = room.estado !== "finalizado" || playerSlot !== "jugador1";
   dom.jugadorLabel.textContent = nombre1;
   dom.mensajeEstado.textContent = room.estado === "finalizado"
-    ? `¡${room.ganador === playerSlot ? "Has ganado" : "Ha ganado " + (room.ganador || nombre2)}!`
+    ? `¡Ronda terminada! Ganador: ${winnerText} · ${playerScore}/${totalBoardPairs} parejas.`
     : `${nombre1} vs ${nombre2}`;
+}
+
+function createMultiplayerDeckForRoom(roomTheme, roomLevel) {
+  return buildDeck(roomTheme, roomLevel, customDeck);
+}
+
+function buildNextRoundDeck(room) {
+  const uniqueCards = [];
+  const seenValues = new Set();
+  (room.cartas || []).forEach((card) => {
+    const key = `${card.type}:${card.value}`;
+    if (!seenValues.has(key)) {
+      seenValues.add(key);
+      uniqueCards.push({ value: card.value, type: card.type });
+    }
+  });
+
+  return shuffle([...uniqueCards, ...uniqueCards].map((card, index) => ({
+    id: `${card.type}-${index}-${Math.random().toString(16).slice(2)}`,
+    value: card.value,
+    type: card.type,
+    visible: false,
+    matched: false
+  })));
+}
+
+function startNextRound() {
+  if (!roomRef || !currentRoom || currentRoom.estado !== "finalizado" || playerSlot !== "jugador1") return;
+
+  const nextRound = Number(currentRoom.ronda || 1) + 1;
+  const nextPlayers = JSON.parse(JSON.stringify(currentRoom.jugadores || {}));
+  Object.values(nextPlayers).forEach((player) => {
+    if (player) player.score = 0;
+  });
+
+  roomRef.update({
+    estado: "jugando",
+    ronda: nextRound,
+    turno: "jugador1",
+    timer: 0,
+    intentos: 0,
+    seleccion: [],
+    ganador: null,
+    ganadorRonda: null,
+    jugadores: nextPlayers,
+    cartas: buildNextRoundDeck(currentRoom)
+  });
+  setSessionBanner(`Ronda ${nextRound} iniciada.`);
 }
 
 function handleMultiplayerTurn(index) {
@@ -539,7 +634,7 @@ function handleMultiplayerTurn(index) {
   if (currentRoom.turno !== playerSlot || currentRoom.estado === "finalizado") return;
   const cards = currentRoom.cartas || [];
   const card = cards[index];
-  if (!card || card.visible || card.matched || currentRoom.seleccion.includes(index)) return;
+  if (!card || card.visible || card.matched || (currentRoom.seleccion || []).includes(index)) return;
 
   const next = JSON.parse(JSON.stringify(currentRoom));
   next.cartas[index].visible = true;
@@ -555,11 +650,18 @@ function handleMultiplayerTurn(index) {
       next.cartas[secondIndex].matched = true;
       next.jugadores[playerSlot].score = (next.jugadores[playerSlot].score || 0) + 1;
       next.seleccion = [];
-      const totalPairs = next.cartas.filter((item) => item.matched).length / 2;
+      const totalPairs = next.cartas.length / 2;
       if (next.jugadores[playerSlot].score >= totalPairs) {
         next.estado = "finalizado";
         next.ganador = playerSlot;
+        next.ganadorRonda = playerSlot;
+        next.jugadores[playerSlot].rondasGanadas = (next.jugadores[playerSlot].rondasGanadas || 0) + 1;
+        next.marcador = {
+          jugador1: next.jugadores.jugador1?.rondasGanadas || 0,
+          jugador2: next.jugadores.jugador2?.rondasGanadas || 0
+        };
       }
+      next.turno = playerSlot;
     } else {
       next.turno = playerSlot === "jugador1" ? "jugador2" : "jugador1";
       next.seleccion = [];
@@ -583,8 +685,38 @@ function handleMultiplayerTurn(index) {
     jugadores: next.jugadores,
     intentos: next.intentos,
     estado: next.estado || currentRoom.estado,
-    ganador: next.ganador || null
+    ganador: next.ganador || null,
+    ganadorRonda: next.ganadorRonda || null,
+    marcador: next.marcador || currentRoom.marcador || null
   });
+}
+
+function copyRoomLink() {
+  const codigo = roomCode || dom.codigoInput.value.trim();
+  if (!codigo) {
+    setSessionBanner("Crea o une una sala antes de compartir el enlace.");
+    return;
+  }
+
+  const baseUrl = `${window.location.origin}${window.location.pathname}`;
+  const link = `${baseUrl}?sala=${codigo}`;
+
+  navigator.clipboard.writeText(link)
+    .then(() => {
+      setSessionBanner("Enlace de la sala copiado.");
+    })
+    .catch(() => {
+      setSessionBanner(`Copia manual: ${link}`);
+    });
+}
+
+function autoFillFromQueryString() {
+  const params = new URLSearchParams(window.location.search);
+  const sala = params.get("sala");
+  if (sala) {
+    dom.codigoInput.value = sala.trim();
+    localStorage.setItem(STORAGE_KEYS.gameCode, sala.trim());
+  }
 }
 
 function createRoom() {
@@ -603,7 +735,7 @@ function createRoom() {
 
   const deckTheme = dom.deckThemeSelect.value;
   const level = dom.dificultadSelect.value;
-  const baseDeck = buildDeck(deckTheme, level, customDeck);
+  const baseDeck = createMultiplayerDeckForRoom(deckTheme, level);
   const initialState = {
     codigo,
     estado: "esperando",
@@ -612,9 +744,12 @@ function createRoom() {
     intentos: 0,
     seleccion: [],
     ganador: null,
+    ganadorRonda: null,
+    ronda: 1,
+    marcador: { jugador1: 0, jugador2: 0 },
     deckTheme,
     jugadores: {
-      jugador1: { id: clientId, nombre, score: 0, conectado: true },
+      jugador1: { id: clientId, nombre, score: 0, rondasGanadas: 0, conectado: true },
       jugador2: null
     },
     cartas: baseDeck,
@@ -674,7 +809,7 @@ function joinRoom() {
 
     playerSlot = slot;
     roomRef.update({
-      [`jugadores/${slot}`]: { id: clientId, nombre, score: 0, conectado: true },
+      [`jugadores/${slot}`]: { id: clientId, nombre, score: 0, rondasGanadas: 0, conectado: true },
       estado: "jugando"
     });
     roomRef.on("value", (valueSnap) => {
@@ -718,6 +853,8 @@ function appInit() {
     resetModeUI();
   });
 
+  dom.copiarEnlaceBtn.addEventListener("click", copyRoomLink);
+
   dom.dificultadSelect.addEventListener("change", () => {
     if (dom.modeSelect.value === "solo") {
       resetSoloGame();
@@ -740,6 +877,9 @@ function appInit() {
         customDeck.push(String(reader.result));
         if (dom.modeSelect.value === "solo") {
           resetSoloGame();
+        } else if (roomRef && currentRoom) {
+          const nextDeck = createMultiplayerDeckForRoom(currentRoom.deckTheme || dom.deckThemeSelect.value, dom.dificultadSelect.value);
+          roomRef.update({ cartas: nextDeck, estado: "jugando", turno: playerSlot || "jugador1", seleccion: [], ganador: null, ganadorRonda: null });
         }
       };
       reader.readAsDataURL(file);
@@ -759,6 +899,8 @@ function appInit() {
     if (dom.modeSelect.value === "solo") return;
     joinRoom();
   });
+
+  dom.siguienteRondaBtn.addEventListener("click", startNextRound);
 
   dom.mensajeInput.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
@@ -823,6 +965,7 @@ function appInit() {
 
   applyTheme(getStoredTheme());
   setPlayerName();
+  autoFillFromQueryString();
   resetModeUI();
 }
 

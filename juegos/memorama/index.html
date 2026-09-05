@@ -80,6 +80,7 @@
           <span>Código</span>
           <input id="codigoInput" type="text" placeholder="Código de sala" autocomplete="one-time-code" />
         </label>
+        <button id="copiarEnlaceBtn" type="button" class="secondary-btn">🔗 Enlace</button>
         <button id="unirseBtn" type="button" class="secondary-btn">Unirse</button>
       </section>
 
@@ -100,6 +101,10 @@
           <span class="label">Tiempo</span>
           <strong id="tiempoLabel">00:00</strong>
         </div>
+        <div class="status-item marcador-item">
+          <span class="label">Marcador global</span>
+          <strong id="marcadorLabel">Jugador 1 0 · Jugador 2 0</strong>
+        </div>
       </section>
 
       <section class="info-bar">
@@ -115,6 +120,7 @@
           <div class="panel-box">
             <h2>Resultado</h2>
             <p id="mensajeEstado">Busca las parejas y gana la partida.</p>
+            <button id="siguienteRondaBtn" type="button" class="primary-btn" hidden>Siguiente ronda</button>
           </div>
 
           <div class="panel-box chat-box">

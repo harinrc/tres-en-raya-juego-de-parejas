@@ -177,7 +177,7 @@ input:focus, select:focus {
 
 .status-bar {
   display: grid;
-  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -191,6 +191,12 @@ input:focus, select:focus {
   flex-direction: column;
   gap: 4px;
   box-shadow: var(--shadow);
+}
+
+.marcador-item strong {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .label {
